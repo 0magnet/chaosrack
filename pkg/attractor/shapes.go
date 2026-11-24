@@ -190,10 +190,10 @@ func PolyShape(p, q int, morph float64, op int, kis float64, dim int) (conway.So
 }
 
 // SacredKnobs are the Sacred Geometry's knobs, and SacredDefaults their
-// defaults: the Flower of Life, drawn whole, at its usual two rings.
+// defaults: the Flower of Life, drawn whole, at its usual two rings, flat.
 var (
-	SacredKnobs    = [3]string{"sacred-form", "sacred-morph", "sacred-detail"}
-	SacredDefaults = [3]float64{sacred.Flower, 1, 1}
+	SacredKnobs    = [4]string{"sacred-form", "sacred-morph", "sacred-detail", "sacred-dim"}
+	SacredDefaults = [4]float64{sacred.Flower, 1, 1, 2}
 )
 
 // ChestKnobs are the Chestahedron's knobs, and chestDefaults their
@@ -260,7 +260,7 @@ func ShapeFigure(key string, knob func(id string) float64, roll float64) (Figure
 		return linesFigure(chester.Form(round("chestahedron-form"),
 			knob("chestahedron-morph"), knob("chestahedron-detail")).Geom()), true
 	case "sacred":
-		return linesFigure(sacred.Form(round("sacred-form"), knob("sacred-morph"), knob("sacred-detail")).Geom()), true
+		return linesFigure(sacred.Form(round("sacred-form"), knob("sacred-morph"), knob("sacred-detail"), sacredDim(round("sacred-dim"))).Geom()), true
 	case "lissajou":
 		a, b, c := knob("lissajou-a"), knob("lissajou-b"), knob("lissajou-c")
 		if a <= 0 || b <= 0 || c <= 0 {
@@ -269,4 +269,13 @@ func ShapeFigure(key string, knob func(id string) float64, roll float64) (Figure
 		return Figure{Kind: FigurePath, Points: lissajousOf(a, b, c, 20000)}, true
 	}
 	return Figure{}, false
+}
+
+// sacredDim is the Sacred Geometry's DIM as its knob reads: 3 only when it
+// says 3, so a rack whose catalog predates the knob (reading 0) draws flat.
+func sacredDim(v int) int {
+	if v == 3 {
+		return 3
+	}
+	return 2
 }

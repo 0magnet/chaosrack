@@ -76,7 +76,7 @@ func StaticFigure(key string, points int) (Figure, bool) {
 				k[i] = float64(v)
 			}
 		}
-		return linesFigure(sacred.Form(int(k[0]+0.5), k[1], k[2]).Geom()), true
+		return linesFigure(sacred.Form(int(k[0]+0.5), k[1], k[2], sacredDim(int(k[3]+0.5))).Geom()), true
 	case "nestedcube":
 		return linesFigure(geom.Lines{Vertices: verticesCube, Indices: indicesCube}), true
 	case "torus":

@@ -10,26 +10,28 @@ func dist(a, b V) float64 { return math.Hypot(a[0]-b[0], a[1]-b[1]) }
 // Every form, at every detail and through morph, is finite, about a unit in
 // size, fits a 16-bit index buffer and joins only points it has.
 func TestEveryFormIsWellMade(t *testing.T) {
-	for f := range NumForms {
-		for d := 0; d <= MaxDetail; d++ {
-			for _, m := range []float64{0, 0.3, 1, 1.5, 2} {
-				l := Form(f, m, float64(d))
-				if len(l.P) >= 65536 {
-					t.Fatalf("%s d=%d: %d points", FormNames[f], d, len(l.P))
-				}
-				for _, e := range l.E {
-					if e[0] < 0 || e[1] < 0 || e[0] >= len(l.P) || e[1] >= len(l.P) {
-						t.Fatalf("%s d=%d m=%v: an edge past the points", FormNames[f], d, m)
+	for dim := 2; dim <= 3; dim++ {
+		for f := range NumForms {
+			for d := 0; d <= MaxDetail; d++ {
+				for _, m := range []float64{0, 0.3, 1, 1.5, 2} {
+					l := Form(f, m, float64(d), dim)
+					if len(l.P) >= 65536 {
+						t.Fatalf("%s d=%d: %d points", FormNames[f], d, len(l.P))
 					}
-				}
-				for _, p := range l.P {
-					r := math.Hypot(p[0], p[1])
-					if math.IsNaN(r) || r > 1.5 {
-						t.Fatalf("%s d=%d m=%v: a point at %v", FormNames[f], d, m, p)
+					for _, e := range l.E {
+						if e[0] < 0 || e[1] < 0 || e[0] >= len(l.P) || e[1] >= len(l.P) {
+							t.Fatalf("%s d=%d m=%v: an edge past the points", FormNames[f], d, m)
+						}
 					}
-				}
-				if m >= 1 && len(l.E) == 0 {
-					t.Errorf("%s d=%d m=%v: nothing drawn", FormNames[f], d, m)
+					for _, p := range l.P {
+						r := math.Hypot(p[0], p[1])
+						if math.IsNaN(r) || r > 1.5 {
+							t.Fatalf("%s d=%d m=%v: a point at %v", FormNames[f], d, m, p)
+						}
+					}
+					if m >= 1 && len(l.E) == 0 {
+						t.Errorf("%s d=%d m=%v: nothing drawn", FormNames[f], d, m)
+					}
 				}
 			}
 		}
@@ -40,18 +42,18 @@ func TestEveryFormIsWellMade(t *testing.T) {
 // and the frame of the whole from the start.
 func TestMorphDrawsTheConstruction(t *testing.T) {
 	for f := range NumForms {
-		if n := len(Form(f, 0, 1).E); n != 0 {
+		if n := len(Form(f, 0, 1, 2).E); n != 0 {
 			t.Errorf("%s: %d segments at morph 0", FormNames[f], n)
 		}
 		prev := 0
 		for _, m := range []float64{0.1, 0.25, 0.5, 0.75, 1} {
-			n := len(Form(f, m, 1).E)
+			n := len(Form(f, m, 1, 2).E)
 			if n < prev {
 				t.Errorf("%s: %d segments at morph %v, fewer than before", FormNames[f], n, m)
 			}
 			prev = n
 		}
-		start, whole := Form(f, 0, 1).P[:2], Form(f, 1, 1).P[:2]
+		start, whole := Form(f, 0, 1, 2).P[:2], Form(f, 1, 1, 2).P[:2]
 		if dist(start[0], whole[0]) > 1e-9 || dist(start[1], whole[1]) > 1e-9 {
 			t.Errorf("%s: framed %v at the start, %v whole", FormNames[f], start, whole)
 		}
@@ -150,14 +152,16 @@ func TestSunflowerSeeds(t *testing.T) {
 
 // EquationLines names every form.
 func TestEquationLinesNameEveryForm(t *testing.T) {
-	for f := range NumForms {
-		for i, l := range EquationLines(f, 1, 1) {
-			if l[0] == "" || l[1] == "" {
-				t.Errorf("%s: line %d is empty", FormNames[f], i)
+	for dim := 2; dim <= 3; dim++ {
+		for f := range NumForms {
+			for i, l := range EquationLines(f, 1, 1, dim) {
+				if l[0] == "" || l[1] == "" {
+					t.Errorf("%s dim %d: line %d is empty", FormNames[f], dim, i)
+				}
 			}
 		}
 	}
-	if len(FormNames) != NumForms || len(RingLabels) != NumForms {
-		t.Errorf("%d names, %d ring labels for %d forms", len(FormNames), len(RingLabels), NumForms)
+	if len(FormNames) != NumForms {
+		t.Errorf("%d names for %d forms", len(FormNames), NumForms)
 	}
 }

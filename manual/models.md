@@ -235,7 +235,9 @@ The vesica is Euclid's first proposition, the equilateral triangle, and its lens
 The Flower of Life is the hexagonal lattice of circles, every circle through six others' centers; the Fruit of Life is thirteen of them that touch and never cross, and joining their centers every way is Metatron's Cube, 78 lines with the outlines of the cube and the star tetrahedron in them.
 The golden rectangle is the one a square cut from leaves another like it, and its quarter circles shrink by φ every turn.
 The sunflower turns each seed 360°/φ² = 137.5° from the last, which packs them with no spokes, and the spirals you count in it are Fibonacci numbers.
-The Equation module gives each figure's numbers.
+dim 3 draws each as the solid whose shadow it is, so that looking straight down the screen's axis gives the drawing back: the Seed of Life is eight spheres on a cube's corners seen down its diagonal, the hexagram is the star tetrahedron (the merkaba).
+kepler is Kepler's attempt to explain the planets' orbits: nested polygons between circles in 1595, and in 1596, in dim 3, the five regular solids nested between six spheres, Saturn's outermost — the Mysterium Cosmographicum.
+The Equation module gives each figure's numbers, Kepler's spheres against the planets' real orbits among them.
 
 ### Nested Cube
 

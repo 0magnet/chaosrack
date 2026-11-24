@@ -85,7 +85,7 @@ func renderForms(key string, idx int) error {
 	vars := portraitVariations(idx)
 	walk := fmt.Sprintf("%d/%s", vars[0].gc, [...]string{"x", "y", "z", "trail"}[vars[0].gs])
 	for _, f := range forms {
-		args := []string{"render", "--model", key, "--crop", "--angle", formAngle(key),
+		args := []string{"render", "--model", key, "--crop", "--angle", formAngle(key, f),
 			"-o", formStill(*portDir, key, f.name), "--width", "300", "--height", "300"}
 		if *portColors {
 			args = append(args, "--walk", walk)
@@ -134,28 +134,43 @@ func formsGallery(key string) string {
 	return b.String() + "\n"
 }
 
-// formAngle is the pose a model's forms are rendered in: a solid tilted 20°
-// so its depth shows, a flat construction face-on, as it is drawn on paper.
-func formAngle(key string) string {
+// formAngle is the pose a form is rendered in: a solid tilted so its depth
+// shows, a flat construction face-on, as it is drawn on paper.
+func formAngle(key string, f formPreset) string {
 	if key == "sacred" {
+		for _, s := range f.set {
+			if s == [2]string{"sacred-dim", "3"} {
+				return "0.5,0.6,0"
+			}
+		}
 		return "0,0,0"
 	}
 	return "0.349066,0,0"
 }
 
 // sacredForms is every Sacred Geometry figure drawn whole (MORPH 1), at the
-// DETAIL that shows it as it is usually drawn.
+// DETAIL that shows it as it is usually drawn: flat, and then in space.
 func sacredForms() []formPreset {
-	show := map[string]float64{
-		"vesica": 2, "seed": 1, "flower": 1, "fruit": 0, "metatron": 1, "golden": 3, "sunflower": 3,
+	flat := map[string]float64{
+		"vesica": 2, "seed": 1, "flower": 1, "fruit": 0, "metatron": 1, "golden": 3, "sunflower": 3, "merkaba": 1, "kepler": 0,
 	}
-	out := make([]formPreset, 0, len(sacred.FormNames))
-	for i, n := range sacred.FormNames {
-		out = append(out, formPreset{n, [][2]string{
-			{"sacred-form", strconv.Itoa(i)},
-			{"sacred-morph", "1"},
-			{"sacred-detail", strconv.FormatFloat(show[n], 'g', -1, 64)},
-		}})
+	space := map[string]float64{
+		"vesica": 0, "seed": 0, "flower": 0, "fruit": 1, "metatron": 0, "golden": 1, "sunflower": 3, "merkaba": 0, "kepler": 0,
+	}
+	var out []formPreset
+	for _, dim := range []struct {
+		n      string
+		suffix string
+		detail map[string]float64
+	}{{"2", "", flat}, {"3", "-3d", space}} {
+		for i, n := range sacred.FormNames {
+			out = append(out, formPreset{n + dim.suffix, [][2]string{
+				{"sacred-form", strconv.Itoa(i)},
+				{"sacred-morph", "1"},
+				{"sacred-detail", strconv.FormatFloat(dim.detail[n], 'g', -1, 64)},
+				{"sacred-dim", dim.n},
+			}})
+		}
 	}
 	return out
 }

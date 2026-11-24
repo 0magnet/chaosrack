@@ -27,7 +27,7 @@ var modelParams = map[string][]ModelParam{
 	"polar":         {{"polar-chan", "src"}, {"polar-map", "map"}, {"polar-drive", "drv"}, {"takens-tau", "τ"}, {"polar-win", "win"}, {"polar-gain", "gain"}, {"takens-smooth", "smth"}},
 	"polyhedron":    {{"polyhedron-p", "sides"}, {"polyhedron-q", "meet"}, {"polyhedron-morph", "morph"}, {"polyhedron-op", "op"}, {"polyhedron-kis", "kis"}, {"polyhedron-dim", "dim"}},
 	"chestahedron":  {{"chestahedron-form", "form"}, {"chestahedron-morph", "morph"}, {"chestahedron-detail", "detail"}},
-	"sacred":        {{"sacred-form", "form"}, {"sacred-morph", "morph"}, {"sacred-detail", "detail"}},
+	"sacred":        {{"sacred-form", "form"}, {"sacred-morph", "morph"}, {"sacred-detail", "detail"}, {"sacred-dim", "dim"}},
 	"pong":          {{"pong-speed", "speed"}, {"pong-paddle", "paddle"}, {"pong-skill", "skill"}, {"pong-pad-l", "left"}, {"pong-pad-r", "right"}},
 	"recurrence":    {{"rec-src", "src"}, {"rec-win", "win"}, {"rec-eps", "ε"}, {"rec-dim", "m"}, {"takens-tau", "τ"}},
 	"rta":           {{"rta-frac", "band"}, {"rta-chan", "src"}, {"rta-top", "top"}, {"rta-range", "rnge"}, {"rta-avg", "avg"}, {"rta-hold", "hold"}},

@@ -32,14 +32,13 @@ const (
 	Metatron
 	Golden
 	Phyllotaxis
+	Merkaba
+	Kepler
 	NumForms
 )
 
 // FormNames are FORM's positions, for the knob and its tooltip.
-var FormNames = []string{"vesica", "seed", "flower", "fruit", "metatron", "golden", "sunflower"}
-
-// RingLabels are the same, short enough to fit round the dial.
-var RingLabels = []string{"ves", "seed", "flwr", "frut", "mtrn", "gold", "sun"}
+var FormNames = []string{"vesica", "seed", "flower", "fruit", "metatron", "golden", "sunflower", "merkaba", "kepler"}
 
 // MaxDetail is the DETAIL knob's top.
 const MaxDetail = 10
@@ -76,12 +75,12 @@ func (l Lines) Geom() geom.Lines {
 // stroke is one move of the construction: a polyline.
 type stroke []V
 
-// Form is form at morph and detail, its size about one: drawn from its
-// construction as far as morph says, twisted past 1.
-func Form(form int, morph, detail float64) Lines {
+// Form is form at morph and detail in dim dimensions (2 or 3), its size
+// about one: drawn from its construction as far as morph says, twisted past 1.
+func Form(form int, morph, detail float64, dim int) Lines {
 	form = max(0, min(NumForms-1, form))
 	d := int(math.Round(max(0, min(MaxDetail, detail))))
-	strokes := build(form, d, morph)
+	strokes := build(form, d, morph, dim)
 	strokes = normalize(strokes)
 	if morph > 1 && form != Phyllotaxis {
 		strokes = twist(strokes, morph-1)
@@ -89,8 +88,15 @@ func Form(form int, morph, detail float64) Lines {
 	return reveal(strokes, min(max(morph, 0), 1))
 }
 
-func build(form, d int, morph float64) []stroke {
+func build(form, d int, morph float64, dim int) []stroke {
+	if dim == 3 {
+		return build3(form, d, morph)
+	}
 	switch form {
+	case Merkaba:
+		return hexagram(d)
+	case Kepler:
+		return keplerPlane()
 	case Vesica:
 		return vesica(d)
 	case Seed:
@@ -104,14 +110,48 @@ func build(form, d int, morph float64) []stroke {
 	case Golden:
 		return golden(4 + 2*d)
 	default:
-		angle := GoldenAngle
-		if morph > 1 {
-			// Past 1, off the golden angle: by 2 it is 2% more, and the
-			// spirals have broken into spokes.
-			angle *= 1 + 0.02*(min(morph, 2)-1)
-		}
-		return sunflower(150*(d+1), angle)
+		return sunflower(Seeds(d), SeedAngle(morph))
 	}
+}
+
+// build3 is form in three dimensions (space.go).
+func build3(form, d int, morph float64) []stroke {
+	switch form {
+	case Vesica:
+		return vesica3(d)
+	case Seed:
+		return egg(d)
+	case Flower:
+		return packing(PackingShells(d))
+	case Fruit:
+		return equilibrium(d)
+	case Metatron:
+		return metatron3(d)
+	case Golden:
+		return goldenRects(d)
+	case Merkaba:
+		return starTetrahedron(d)
+	case Kepler:
+		return keplerSpace()
+	default:
+		return fibonacciSphere(Seeds(d), SeedAngle(morph))
+	}
+}
+
+// Seeds is how many seeds the sunflower has at detail d.
+func Seeds(d int) int { return 150 * (d + 1) }
+
+// PackingShells is how many shells of spheres the flower has in space at
+// detail d: one (13, the vector equilibrium) to 1, then two (55).
+func PackingShells(d int) int { return 1 + min(d/2, 1) }
+
+// SeedAngle is the turn between seeds at morph: the golden angle, and past 1
+// off it, 2% more by 2, where the spirals have broken into spokes.
+func SeedAngle(morph float64) float64 {
+	if morph > 1 {
+		return GoldenAngle * (1 + 0.02*(min(morph, 2)-1))
+	}
+	return GoldenAngle
 }
 
 // circle is the circle about c of radius r, from angle a0 round, in n pieces.

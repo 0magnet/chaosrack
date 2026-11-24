@@ -126,7 +126,6 @@ var paramRingLabels = map[string][]string{
 	"spect-dft":   {"64", "128", "256", "512", "1k", "2k", "4k", "8k"},
 	"spect-win":   {"hann", "hamm", "bart", "rect"},
 	"spect-scale": {"log", "lin"},
-	"sacred-form": sacred.RingLabels,
 	"globe-par":   {"ring", "spir"},
 	"globe-rev":   {"cw", "ccw"},
 	"stereo-axes": stereoAxisRing,
@@ -263,6 +262,7 @@ var attractorParams = map[string][]paramDef{
 		{"sacred-form", "form", &sacredK.formF, float32(SacredDefaults[0]), 0, sacred.NumForms - 1, 1},
 		{"sacred-morph", "morph", &sacredK.morphF, float32(SacredDefaults[1]), 0, 2, 0.01},
 		{"sacred-detail", "detail", &sacredK.detailF, float32(SacredDefaults[2]), 0, sacred.MaxDetail, 1},
+		{"sacred-dim", "dim", &sacredK.dimF, float32(SacredDefaults[3]), 2, 3, 1},
 	},
 
 	"globe": {
