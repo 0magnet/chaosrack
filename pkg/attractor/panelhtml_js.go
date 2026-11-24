@@ -82,6 +82,7 @@ const controlsBody = `
 </div>
 <div id="model-parts" style="display:none">
 <div class="punit" id="speed-cell" data-param="speed-slider" data-stops data-doc="speed-cell"><span class="punit-top"><span class="u-lbl">speed</span><input type="text" inputmode="decimal" id="slider-value-speed" class="numin u-val" data-doc="slider-value-speed" value="1.00"></span><input type="range" id="speed-slider" min="-2" max="2" value="0" step="0.1" data-doc="speed-slider"><button class="rst" id="rst-speed" data-doc="rst-speed">↺</button></div>
+<div class="punit" id="measure-mode-cell" data-param="measure-mode" data-doc="measure-mode-stack-cell"><span class="punit-top"><span class="plabel">meas</span></span><select id="measure-mode" style="display:none"><option value="0" selected data-doc="measure-mode=0">off</option><option value="1" data-doc="measure-mode=1">dist</option><option value="2" data-doc="measure-mode=2">angle</option></select><span class="knobhold" id="measure-mode-stack"></span></div>
 <span class="mro" data-for="*" data-doc="mro-*"><span class="mro-lbl">lyap</span><span class="mrodmd" data-chars="8" id="lyap-led" data-doc="lyap-led">--.--</span><span class="mrodmd" data-chars="8" id="lyap-verdict" data-doc="lyap-verdict"></span><button class="rst" id="lyap-remeasure" data-doc="lyap-remeasure">↻</button></span>
 <span class="mro" data-for="scopetext" data-doc="mro-scopetext"><span class="mro-lbl">text</span><input type="text" id="stext-in" class="stext-in" maxlength="24" data-no-drag data-doc="stext-in"></span>
 <span class="mro" data-for="pong" data-doc="mro-pong"><span class="mro-lbl">score</span><span class="mrodmd" data-chars="4" id="pong-score-l" data-doc="pong-score-l">0</span><span class="mro-sep">:</span><span class="mrodmd" data-chars="4" id="pong-score-r" data-doc="pong-score-r">0</span></span>
@@ -146,6 +147,16 @@ const controlsBody = `
 </div>
 <input type="checkbox" id="rec-sw" class="rec-hidden-state">
 </div>
+<div class="sect" id="monitor-module"><div class="sect-hdr" data-doc="view-monitor">Monitor</div>
+<!-- The picture beside the knobs that turn and move it (viewmonitor_js.go):
+     the Record monitor's screen, without the recording's marks. -->
+<div class="recgrid">
+  <div class="rec-screen-unit" data-no-drag>
+    <span class="monbezel" data-doc="view-preview-cell"><canvas id="view-preview" width="244" height="230"></canvas></span>
+  <label class="grp" style="cursor:pointer;" data-doc="view-mon-on-cell"><input type="checkbox" class="sw" id="view-mon-on" checked> Monitor</label>
+  </div>
+</div>
+</div>
 <div class="sect"><div class="sect-hdr" data-doc="view">View</div>
 <div class="row vmrow vmaxrow">
   <span class="pcell axcol axrot" data-no-drag data-doc="knob-x-cell">
@@ -197,17 +208,6 @@ const controlsBody = `
       <!-- Filled by buildFocusDial: one position per cell of the CURRENT grid. -->
       <option value="0" selected data-doc="focus-n=0">A</option>
     </select><span class="knobhold" id="focus-n-stack"></span><input type="checkbox" id="link-sw" checked hidden data-doc="link-sw-cell"></div>
-</div>
-</div>
-<div class="sect" id="measure-module"><div class="sect-hdr" data-doc="measure">Measure</div>
-<!-- One P-unit (rackbank_js.go), made by buildMeasureBank: MODE arms the
-     picking (measure_js.go), and its buttons set and clear the unit. -->
-<div class="punit-grid catgrid" id="measure-bank">
-  <div class="punit" id="measure-mode-cell" data-param="measure-mode" data-doc="measure-mode-stack-cell" style="grid-row:1;grid-column:1"><span class="punit-top"><span class="plabel">mode</span></span><select id="measure-mode" style="display:none">
-      <option value="0" selected data-doc="measure-mode=0">off</option>
-      <option value="1" data-doc="measure-mode=1">dist</option>
-      <option value="2" data-doc="measure-mode=2">angle</option>
-    </select><span class="knobhold" id="measure-mode-stack"></span></div>
 </div>
 </div>
 <div class="sect" id="display-module"><div class="sect-hdr" data-doc="display">Display</div>

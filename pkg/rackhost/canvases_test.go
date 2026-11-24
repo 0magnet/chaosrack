@@ -49,8 +49,8 @@ func beamLit(m *rackpic.Image) (n int, span image.Rectangle) {
 	return n, span
 }
 
-// The panel's six screens are told apart: the model's monitor, the Record
-// module's and the four scopes'.
+// The panel's seven screens are told apart: the model's monitor, the display
+// bay's, the Record module's and the four scopes'.
 func TestThePanelsScreensAreToldApart(t *testing.T) {
 	r := newRack(t)
 	r.mu.Lock()
@@ -60,7 +60,7 @@ func TestThePanelsScreensAreToldApart(t *testing.T) {
 	for _, k := range kinds {
 		count[k]++
 	}
-	want := map[panelCanvas]int{{kind: canvasMonitor}: 1, {kind: canvasRecord}: 1}
+	want := map[panelCanvas]int{{kind: canvasMonitor}: 1, {kind: canvasView}: 1, {kind: canvasRecord}: 1}
 	for n := range scopeCount {
 		want[panelCanvas{kind: canvasScope, n: n}] = 1
 	}

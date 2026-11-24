@@ -1262,6 +1262,7 @@ func wirePanelSwitches() {
 	rec.wireRecordSwitch()
 	wireRegionSwitch()
 	recmod.wireRecordModule()
+	wireViewMonitor()
 	wireJamSwitch()
 	wireMIDISwitch()
 
@@ -1359,7 +1360,6 @@ func initDrawState() {
 func wireViewGridStack() {
 	// The Grid's P-units, before its dials are filled (gridbank_js.go).
 	buildGridBank()
-	buildMeasureBank()
 	buildPUnitModule("display-bank")
 	buildPUnitModule("layers-bank")
 	// The sweep dial: what varies across the grid. Its options are the

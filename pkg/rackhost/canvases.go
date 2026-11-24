@@ -25,6 +25,7 @@ const (
 	canvasMonitor = iota // the model bay's: the model, or STANDBY
 	canvasRecord         // the Record module's: what would be recorded
 	canvasScope          // a scope's tube
+	canvasView           // the display bay's Monitor: the picture, beside the View knobs
 )
 
 // panelCanvas is what one of the picture's canvases is: its kind, and for a
@@ -39,7 +40,7 @@ func (r *Rack) canvasesOf() map[int]panelCanvas {
 	if r.canvasKinds != nil || r.pic == nil {
 		return r.canvasKinds
 	}
-	under := map[string]panelCanvas{"bay-visual-0-mon-on": {kind: canvasMonitor}}
+	under := map[string]panelCanvas{"bay-visual-0-mon-on": {kind: canvasMonitor}, "view-mon-on": {kind: canvasView}}
 	for n := range scopeCount {
 		under[attractor.ScopePrefix(n)+"-volts"] = panelCanvas{kind: canvasScope, n: n}
 	}
@@ -81,6 +82,8 @@ func (r *Rack) Canvases(_ int, want []rackpic.CanvasWant) (map[int]*rackpic.Imag
 			m = r.scopeFrame(k.n, w.W, w.H)
 		case canvasMonitor:
 			m = r.monitorFrame(w.W, w.H, r.value("bay-visual-0-mon-on") != "0", "")
+		case canvasView:
+			m = r.monitorFrame(w.W, w.H, r.value("view-mon-on") != "0", "")
 		default:
 			// No recorder runs on the host: the monitor shows what one would
 			// take, standing by.

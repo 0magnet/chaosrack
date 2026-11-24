@@ -957,11 +957,20 @@ func bankTail(own []string, cells map[string][]js.Value, tail []js.Value) {
 		}
 	}
 	for i, c := range tail {
+		// A cell's place in the column is its order, unless it names one:
+		// two cells for models that never meet can share a place (Speed and
+		// Measure, at 1.12.3).
+		slot := i
+		if s := c.Call("getAttribute", "data-tail-slot"); s.Truthy() {
+			if n, err := strconv.Atoi(s.String()); err == nil {
+				slot = n
+			}
+		}
 		for _, m := range fors[i] {
 			if !slices.Contains(own, m) {
 				continue
 			}
-			for len(cells[m]) < at+i {
+			for len(cells[m]) < at+slot {
 				cells[m] = append(cells[m], js.Undefined())
 			}
 			cells[m] = append(cells[m], c)

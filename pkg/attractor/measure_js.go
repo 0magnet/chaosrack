@@ -2,7 +2,8 @@
 
 package attractor
 
-// The Measure module: pick points on the figure and measure between them.
+// MEASURE: pick points on the figure and measure between them. It is a
+// position of the model bank (1.12.3) under the figures of lines.
 //
 // MODE arms it — dist takes two points, angle three, the middle one the
 // vertex — and while it is armed a press that lands near a point that
@@ -61,7 +62,12 @@ var meas struct {
 const measureSnapPx = 14
 
 // measureMode is MODE's position: 0 off, 1 distance, 2 angle.
-func measureMode() int { return max(selectAt("measure-mode"), 0) }
+func measureMode() int {
+	if !measurableModel(run.selectedMode) {
+		return 0 // armed, but under a model it does not serve: off
+	}
+	return max(selectAt("measure-mode"), 0)
+}
 
 // measurePoints is how many points MODE's measurement takes.
 func measurePoints() int {
@@ -349,15 +355,24 @@ func drawMeasureOverlay() {
 	}
 }
 
-// buildMeasureBank makes the Measure module's cell a P-unit and mounts its
-// dial. Called with the Grid's.
-func buildMeasureBank() {
+// measureReady is whether the cell's dial, buttons and control are made:
+// once, however often the bay is built.
+var measureReady bool
+
+// measureCell is MEASURE's cell, ready for the bank: it is a position of
+// the model bank, at 1.12.3 under the figures of lines, where Speed is
+// under the models with a clock (rackcategory_js.go places it).
+func measureCell() js.Value {
+	c := dom.Doc.Call("getElementById", "measure-mode-cell")
+	if !c.Truthy() || measureReady {
+		return c
+	}
+	measureReady = true
 	registerMeasureTrio()
-	buildPUnitModule("measure-bank")
 	if sel, h := dom.Doc.Call("getElementById", "measure-mode"), dom.Doc.Call("getElementById", "measure-mode-stack"); sel.Truthy() && h.Truthy() {
 		selectorReadout(h, sel, measureModeRing)
 	}
-	registerControl(ControlDesc{ID: "measure-mode", Label: "mode", IsSelect: true, SelectDef: "0"}, moduleOfControl("measure-mode"))
+	registerControl(ControlDesc{ID: "measure-mode", Label: "measure", IsSelect: true, SelectDef: "0"}, moduleOfControl("measure-mode"))
 	// Turning it off ends a half-picked measurement; the finished ones stay
 	// until C or a change of model.
 	dom.On(dom.Doc.Call("getElementById", "measure-mode"), "change", func(js.Value, []js.Value) any {
@@ -368,7 +383,12 @@ func buildMeasureBank() {
 		}
 		return nil
 	})
+	return c
 }
+
+// measurableModel is whether MEASURE serves a model: the figures of lines,
+// the geometry models, which have no clock and so no Speed.
+func measurableModel(mode string) bool { return modeInfo[mode].Class == ClassGeometry }
 
 // measureModeRing is MODE's positions round its dial.
 var measureModeRing = []string{"off", "dist", "ang"}

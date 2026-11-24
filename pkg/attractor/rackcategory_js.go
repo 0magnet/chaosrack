@@ -219,6 +219,23 @@ func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
 			mo = append(mo, sc)
 		}
 	}
+	// And Measure, in the same place for the figures of lines, which have
+	// no clock: Speed's place is dark under them, and this is what fills it
+	// (measure_js.go). The two never serve one model, so they share it.
+	if mc := measureCell(); mc.Truthy() && len(mo) >= 2 {
+		var figures []string
+		for _, m := range own {
+			if measurableModel(m) && !runsOnSpeed(m) {
+				figures = append(figures, m)
+			}
+		}
+		if len(figures) > 0 {
+			mc.Call("setAttribute", "data-bank-for", strings.Join(figures, " "))
+			mc.Call("setAttribute", "data-tail-slot", "2")
+			mc.Call("remove")
+			mo = append(mo, mc)
+		}
+	}
 	groups, gcells := homedBankGroups(own)
 	return buildBankRow(label, own, cells, steps, sharedCells, hidden, mo, groups, gcells)
 }

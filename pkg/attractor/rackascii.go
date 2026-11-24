@@ -161,7 +161,7 @@ func DrawRackFrom(keys, cats []string, slots []int, capacity int, monitors map[s
 
 // bayScreenKeys is which modules carry a screen of their own, mirroring
 // bayScreens in the js half — the pure side needs it to draw the same bays.
-var bayScreenKeys = map[string]bool{"record": true, "scope 1": true}
+var bayScreenKeys = map[string]bool{"monitor": true, "record": true, "scope 1": true}
 
 // drawLead is whether a measured module must open a bay, by the same rule
 // the page applies: it carries a screen, or it is a model row's head. A head

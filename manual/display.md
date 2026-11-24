@@ -540,6 +540,22 @@ Fore — slide the model through the rack. With BEHIND on water the rack is the 
 <!-- key: rst-zoom -->
 Reset zoom and Fore
 
+## Monitor
+
+<!-- key: view-monitor -->
+Monitor — the picture on a screen of its own at the head of the display bay, beside the knobs that turn, move and zoom it, as the Record monitor heads the console bay and the model's monitor the model bay.
+Turn the view, pan it or change how it is drawn and the result is in front of you, without looking away from the knobs to the canvas.
+
+### Screen
+
+<!-- key: view-preview-cell -->
+Screen — the picture as the Record monitor frames it (its area), fitted, a copy every tenth of a second.
+
+### Monitor
+
+<!-- key: view-mon-on-cell -->
+Monitor — power to this screen. Off, it goes dark and costs nothing; the copy out of the drawing buffer is not free.
+
 ## Grid
 
 <!-- key: grid -->
@@ -658,30 +674,6 @@ Off, each cell keeps its own parameters and the knobs drive the one Focus is on 
 - <!-- key: trio.focus-n=0 --> the next cell — unlinks, and the knobs drive that cell alone
 - <!-- key: trio.focus-n=1 --> Link — every cell on one set of knobs (lit while linked)
 - <!-- key: trio.focus-n=2 --> the cell before — unlinks, and the knobs drive that cell alone
-
-## Measure
-
-<!-- key: measure -->
-Measure — pick points on the figure and measure the distances and angles between them, named when they are numbers worth naming: √3, φ, 1/φ², 108° = 3π/5.
-A press near a point that matters takes it: a center a circle was drawn about, a place where circles and lines meet (solved exactly, not read off the drawing), a corner, or a place where two lines cross in space.
-A ring follows the cursor to show which point a press would take; a press on empty space still turns the view, so the figure can be turned between picks.
-The first distance is the unit, and every distance after it reads as a ratio to it: measure the vesica's line of centers, then its chord, and the chord says √3.
-It measures figures made of lines (the geometry models, the Chestahedron, Sacred Geometry), in a single view.
-
-### Mode
-
-<!-- key: measure-mode-stack-cell -->
-Mode — what a press measures.
-
-- <!-- key: measure-mode=0 --> off — presses turn the view, as always
-- <!-- key: measure-mode=1 --> dist — two points, and the distance between them
-- <!-- key: measure-mode=2 --> angle — three points, and the angle at the second
-
-### Measure buttons
-
-- <!-- key: trio.measure-mode=0 --> U: unit — the last distance measured is the unit from now on (lit while there is one)
-- <!-- key: trio.measure-mode=1 --> 1: forget the unit — the next distance measured becomes it
-- <!-- key: trio.measure-mode=2 --> C: clear — every measurement, and the unit
 
 ## Display
 

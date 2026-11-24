@@ -227,6 +227,7 @@ const bayHeadAttr = "data-bayhead"
 // a module acquiring a canvas should be a decision about where it goes
 // rather than a silent relayout.
 var bayScreens = map[string]bool{
+	"monitor": true, // the picture, at the head of the display bay
 	"record":  true, // the capture preview
 	"scope 1": true, // the tube, at the head of the generators
 	"scope 2": false,

@@ -86,3 +86,22 @@ Audio — displays of the live signal: the spectrogram, the FVF wobbulator, the 
 
 The head of the bay: the monitor, the switches under it, and the readouts of the model playing.
 The MODEL knob and the model's step head the bank beside it, which the MODEL knob reprograms.
+
+## Measure
+
+<!-- key: measure-mode-stack-cell -->
+Measure — pick points on the figure and measure the distances and angles between them, named when they are numbers worth naming: √3, φ, 1/φ², 108° = 3π/5.
+It stands at 1.12.3 under the figures of lines (the geometry models: Polyhedron, the Chestahedron, Sacred Geometry and the rest), which have no clock, in the place Speed has under the models that do.
+A press near a point that matters takes it: a center a circle was drawn about, a place where circles and lines meet (solved exactly, not read off the drawing), a corner, or a place where two lines cross in space.
+A ring follows the cursor to show which point a press would take; a press on empty space still turns the view, so the figure can be turned between picks.
+The first distance is the unit, and every distance after it reads as a ratio to it: measure the vesica's line of centers, then its chord, and the chord says √3. It measures in a single view.
+
+- <!-- key: measure-mode=0 --> off — presses turn the view, as always
+- <!-- key: measure-mode=1 --> dist — two points, and the distance between them
+- <!-- key: measure-mode=2 --> angle — three points, and the angle at the second
+
+### Measure buttons
+
+- <!-- key: trio.measure-mode=0 --> U: unit — the last distance measured is the unit from now on (lit while there is one)
+- <!-- key: trio.measure-mode=1 --> 1: forget the unit — the next distance measured becomes it
+- <!-- key: trio.measure-mode=2 --> C: clear — every measurement, and the unit
