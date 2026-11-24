@@ -39,7 +39,7 @@ func TestModRowsFollowTheModel(t *testing.T) {
 	if mv.nParams == 0 || len(mv.rows) != mv.nParams+len(attractor.ModViewRows) {
 		t.Fatalf("%d rows, %d of them the model's", len(mv.rows), mv.nParams)
 	}
-	want := []string{"torus-R", "torus-r", "torus-stacks", "torus-slices", "torus-roll"}
+	want := []string{"torus-R", "torus-r", "torus-stacks", "torus-slices", "torus-roll", "torus-dim"}
 	for i, id := range want {
 		if mv.rows[i] != id {
 			t.Errorf("row %d is %q, want %q", i, mv.rows[i], id)

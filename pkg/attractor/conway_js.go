@@ -31,24 +31,26 @@ import (
 // the five seeds shared so an old link's operator still lands on it.
 var poly = struct {
 	pF, qF, morphF, kisF float32
-}{pF: 3, qF: 3}
+	// dimF is DIM: 3 the solid, 2 the polygon {p} (conway.Polygon).
+	dimF float32
+}{pF: 3, qF: 3, dimF: 3}
 
 var polyOpF float32
 
 // polyBuilt is the knob settings the mesh on the GPU was built from, so a
 // turn rebuilds it and nothing else does. Tracked here rather than through
 // gpu.staticDirty because the generic invalidation does not know these knobs.
-var polyBuilt [5]float32
+var polyBuilt [6]float32
 
 // polySolid is the solid (or tiling) the knobs describe, and whether it is a
 // solid: morph, op and kis act only on a solid.
 func polySolid() (conway.Solid, bool) {
-	return PolySolid(int(poly.pF+0.5), int(poly.qF+0.5), float64(poly.morphF), int(polyOpF+0.5), float64(poly.kisF))
+	return PolyShape(int(poly.pF+0.5), int(poly.qF+0.5), float64(poly.morphF), int(polyOpF+0.5), float64(poly.kisF), int(poly.dimF+0.5))
 }
 
 // generatePolyhedron draws the knobs' solid as a wireframe.
 func generatePolyhedron() {
-	want := [5]float32{poly.pF, poly.qF, poly.morphF, poly.kisF, polyOpF}
+	want := [6]float32{poly.pF, poly.qF, poly.morphF, poly.kisF, polyOpF, poly.dimF}
 	if polyBuilt == want && gpu.staticGeomCached(glctx.Types.Line) {
 		return
 	}
@@ -88,6 +90,17 @@ func polyEquationLines() (lines [4][2]string, runnable bool) {
 	p, q := int(poly.pF+0.5), int(poly.qF+0.5)
 	sum := "1/" + strconv.Itoa(p) + " + 1/" + strconv.Itoa(q)
 	s, solid := polySolid()
+	if int(poly.dimF+0.5) == 2 {
+		// One dimension down: {p,q} loses its q and is its own face.
+		ps := strconv.Itoa(p)
+		lines[0] = [2]string{"{p}", "{" + ps + "}: the face of {" + ps + "," + strconv.Itoa(q) + "}, every corner " +
+			strconv.FormatFloat(conway.PolygonAngle(p), 'f', -1, 64) + "°"}
+		lines[1] = [2]string{"F =", "max over k of x·cos(2πk/" + ps + ") + y·sin(2πk/" + ps + ") − cos(π/" + ps + ")"}
+		lines[2] = [2]string{"V E", strconv.Itoa(len(s.Verts)) + "  " + strconv.Itoa(len(s.Edges()))}
+		lines[3] = [2]string{"ops", "morph " + strconv.FormatFloat(float64(poly.morphF), 'f', 2, 64) +
+			" · kis " + strconv.FormatFloat(float64(poly.kisF), 'f', 2, 64)}
+		return lines, false
+	}
 	switch conway.CurvatureOf(p, q) {
 	case conway.Spherical:
 		lines[0] = [2]string{"{p,q}", "{" + strconv.Itoa(p) + "," + strconv.Itoa(q) + "}: " + sum + " > 1/2, a solid"}

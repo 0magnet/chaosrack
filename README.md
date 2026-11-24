@@ -1539,13 +1539,16 @@ The Turtle is the exception that fits: it walks the same integer grid, so withou
 
 #### Polyhedron
 
-| Polyhedron | animated |
-| --- | --- |
-| [![Polyhedron](docs/img/model/polyhedron.jpg)](https://chaosrack.magnetosphere.net/#polyhedron) | [![Polyhedron, animated](https://chaosrack.magnetosphere.net/docs/img/model/polyhedron.gif)](https://chaosrack.magnetosphere.net/#polyhedron) |
+[![Polyhedron parameters](docs/img/model/polyhedron-params.jpg)](https://chaosrack.magnetosphere.net/#polyhedron)
+
+| Polyhedron | animated | dim 2: the pentagon, kis −0.43: a pentagram |
+| --- | --- | --- |
+| [![Polyhedron](docs/img/model/polyhedron.jpg)](https://chaosrack.magnetosphere.net/#polyhedron) | [![Polyhedron, animated](https://chaosrack.magnetosphere.net/docs/img/model/polyhedron.gif)](https://chaosrack.magnetosphere.net/#polyhedron) | [![Polyhedron — dim 2: the pentagon, kis −0.43: a pentagram](docs/img/model/polyhedron-2d.jpg)](https://chaosrack.magnetosphere.net/#polyhedron&p.p=5&p.kis=-0.43&p.dim=2&ar=0&rot=0,0,0) |
 
 Polyhedron — The regular solids and tilings, by Schläfli symbol {p,q}: faces of p sides, q of them at every corner. {3,3} is the tetrahedron, {4,3} the cube, {3,4} the octahedron, {5,3} the dodecahedron, {3,5} the icosahedron;
 where the corners make a full turn the faces tile the plane, and past it they tile the hyperbolic plane, drawn in Poincaré's disk.
 On a solid, morph cuts the corners through the rectified solid to the dual, op applies a Conway operator and kis raises a pyramid on every face.
+dim 2 takes it one dimension down, to the polygon {p}: the face of the solid, the triangle, square, pentagon or hexagon, with morph and kis acting on it as on the solid (kis makes it a star).
 
 `#polyhedron` · geometry
 
@@ -1577,11 +1580,14 @@ Its forms, each opening the page with that form up:
 
 #### Nested Cube
 
-| Nested Cube | animated |
-| --- | --- |
-| [![Nested Cube](docs/img/model/nestedcube.jpg)](https://chaosrack.magnetosphere.net/#nestedcube) | [![Nested Cube, animated](https://chaosrack.magnetosphere.net/docs/img/model/nestedcube.gif)](https://chaosrack.magnetosphere.net/#nestedcube) |
+[![Nested Cube parameters](docs/img/model/nestedcube-params.jpg)](https://chaosrack.magnetosphere.net/#nestedcube)
+
+| Nested Cube | animated | dim 2: the squares |
+| --- | --- | --- |
+| [![Nested Cube](docs/img/model/nestedcube.jpg)](https://chaosrack.magnetosphere.net/#nestedcube) | [![Nested Cube, animated](https://chaosrack.magnetosphere.net/docs/img/model/nestedcube.gif)](https://chaosrack.magnetosphere.net/#nestedcube) | [![Nested Cube — dim 2: the squares](docs/img/model/nestedcube-2d.jpg)](https://chaosrack.magnetosphere.net/#nestedcube&p.dim=2&ar=0&rot=0,0,0) |
 
 Nested Cube — A cube within a cube, two separate wireframes, illustrating the relationship between inner and outer geometric structures.
+dim 2 is the same one dimension down: a square within a square.
 
 `#nestedcube` · geometry
 
@@ -1589,12 +1595,13 @@ Nested Cube — A cube within a cube, two separate wireframes, illustrating the 
 
 [![Globe parameters](docs/img/model/globe-params.jpg)](https://chaosrack.magnetosphere.net/#globe)
 
-| Globe | animated |
-| --- | --- |
-| [![Globe](docs/img/model/globe.jpg)](https://chaosrack.magnetosphere.net/#globe) | [![Globe, animated](https://chaosrack.magnetosphere.net/docs/img/model/globe.gif)](https://chaosrack.magnetosphere.net/#globe) |
+| Globe | animated | dim 2: the circle |
+| --- | --- | --- |
+| [![Globe](docs/img/model/globe.jpg)](https://chaosrack.magnetosphere.net/#globe) | [![Globe, animated](https://chaosrack.magnetosphere.net/docs/img/model/globe.gif)](https://chaosrack.magnetosphere.net/#globe) | [![Globe — dim 2: the circle](docs/img/model/globe-2d.jpg)](https://chaosrack.magnetosphere.net/#globe&p.dim=2&ar=0&rot=0,0,0) |
 
 Globe — A wireframe sphere showing lines of latitude and longitude, similar to the graticule on a geographic globe.
 Latitude lines are horizontal circles parallel to the equator, longitude lines are great circles passing through the poles.
+dim 2 is the circle, the sphere one dimension down, with the graticule as the plane's polar grid.
 
 `#globe` · geometry
 
@@ -1602,11 +1609,12 @@ Latitude lines are horizontal circles parallel to the equator, longitude lines a
 
 [![Torus parameters](docs/img/model/torus-params.jpg)](https://chaosrack.magnetosphere.net/#torus)
 
-| Torus | animated |
-| --- | --- |
-| [![Torus](docs/img/model/torus.jpg)](https://chaosrack.magnetosphere.net/#torus) | [![Torus, animated](https://chaosrack.magnetosphere.net/docs/img/model/torus.gif)](https://chaosrack.magnetosphere.net/#torus) |
+| Torus | animated | dim 2: the annulus, 6 stacks |
+| --- | --- | --- |
+| [![Torus](docs/img/model/torus.jpg)](https://chaosrack.magnetosphere.net/#torus) | [![Torus, animated](https://chaosrack.magnetosphere.net/docs/img/model/torus.gif)](https://chaosrack.magnetosphere.net/#torus) | [![Torus — dim 2: the annulus, 6 stacks](docs/img/model/torus-2d.jpg)](https://chaosrack.magnetosphere.net/#torus&p.stacks=6&p.slices=6&p.dim=2&ar=0&rot=0,0,0) |
 
 Torus — A doughnut-shaped surface of revolution generated by revolving a circle (radius r) around an axis at distance R from the center of the circle.
+dim 2 is the annulus, the band a segment sweeps around a point, with the torus's own grid of rings and spokes.
 
 `#torus` · geometry
 

@@ -728,6 +728,11 @@ var modelVariantShots = map[string][]variantShot{
 	// The sphere inside the Chestahedron, seen straight down its axis and held
 	// still, as the README links it.
 	"chestahedron": {{suffix: "sphere-top", link: chestSphereTop, settle: 20 * time.Second}},
+	// DIM 2: each solid one dimension down, held face-on (see dimTwoLink).
+	"polyhedron": {{suffix: "2d", link: dimTwoLink("p.p=5&p.kis=-0.43"), settle: 20 * time.Second}},
+	"globe":      {{suffix: "2d", link: dimTwoLink(""), settle: 20 * time.Second}},
+	"torus":      {{suffix: "2d", link: dimTwoLink("p.stacks=6&p.slices=6"), settle: 20 * time.Second}},
+	"nestedcube": {{suffix: "2d", link: dimTwoLink(""), settle: 20 * time.Second}},
 }
 
 // densityShot is a map's density view, given time to fill in.
@@ -835,3 +840,13 @@ var portraitSets = map[string][]string{
 // FORM sphere, turned 90° about X, zoomed in, auto-rotate off. The README's
 // still and its link share it.
 const chestSphereTop = "z=41&ar=0&p.form=3&rot=90,0,0"
+
+// dimTwoLink is a geometry model's DIM 2 link fields, with any of its own
+// added first: the flat figure is drawn face-on and held still, because a flat
+// figure turning shows its edge half the time.
+func dimTwoLink(own string) string {
+	if own != "" {
+		own += "&"
+	}
+	return own + "p.dim=2&ar=0&rot=0,0,0"
+}

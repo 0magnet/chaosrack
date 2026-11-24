@@ -86,6 +86,7 @@ var GridSweepParams = map[string][]GridParam{
 		{"globe-lat", "lat", 0, 90},
 		{"globe-lon", "lon", 0, 180},
 		{"globe-twist", "twist", -8, 8},
+		{"globe-dim", "dim", 2, 3},
 	},
 	"torus": {
 		{"torus-R", "R", 0.1, 5},
@@ -93,12 +94,17 @@ var GridSweepParams = map[string][]GridParam{
 		{"torus-stacks", "stacks", 3, 100},
 		{"torus-slices", "slices", 3, 100},
 		{"torus-roll", "roll", -8, 8},
+		{"torus-dim", "dim", 2, 3},
 	},
 	"polyhedron": {
 		{"polyhedron-p", "sides", 3, 6},
 		{"polyhedron-q", "meet", 3, 6},
 		{"polyhedron-morph", "morph", 0, 2},
 		{"polyhedron-kis", "kis", -0.9, 1},
+		{"polyhedron-dim", "dim", 2, 3},
+	},
+	"nestedcube": {
+		{"nestedcube-dim", "dim", 2, 3},
 	},
 	"chestahedron": {
 		{"chestahedron-morph", "morph", 0, 2},

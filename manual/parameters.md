@@ -42,6 +42,12 @@ direction — which way the spiral of parallels winds, + or − on LAT. The ring
 twist — turns each meridian as it descends, so the lines of longitude become helices.
 Zero is the ordinary globe; the sign is which way they lean.
 
+### dimensions
+
+<!-- key: p.globe-dim -->
+dimensions — 3 is the globe, 2 the circle: the sphere one dimension down, its graticule the plane's polar grid.
+The parallels become concentric circles, the meridians spokes (spirals when twisted), the spiral Archimedes', and the south pole opens out into the rim.
+
 ### major radius
 
 <!-- key: p.torus-R -->
@@ -66,6 +72,17 @@ sides — how many segments run around the tube.
 
 <!-- key: p.torus-roll -->
 roll — how fast the tube turns about its own core circle, signed; zero holds it still.
+
+### dimensions
+
+<!-- key: p.torus-dim -->
+dimensions — 3 is the torus, 2 the annulus: the band a segment sweeps turning about a point, as the torus is the surface a circle sweeps turning about an axis.
+Its rings and spokes are the torus's own grid, the rings polygons of as many sides as the torus has rings; roll flows them outward across the band.
+
+### dimensions
+
+<!-- key: p.nestedcube-dim -->
+dimensions — 3 is the cube within a cube, 2 the square within a square: their faces toward you.
 
 ### a
 
@@ -229,6 +246,12 @@ Acts on a solid, not a tiling.
 <!-- key: p.polyhedron-kis -->
 kis — a pyramid on every face: out above 0, pressed in below. + raises them, 0 flattens them, − presses them in.
 Acts on a solid, not a tiling.
+
+### dimensions
+
+<!-- key: p.polyhedron-dim -->
+dimensions — 3 is the solid {p,q}, 2 the polygon {p}: drop the last number of the Schläfli symbol and what is left is the face, so the tetrahedron becomes the triangle and the cube the square.
+morph and kis act on it as on a solid, one dimension down: morph cuts the corners through the 2p-gon to the turned polygon, and kis raises a point on every edge, a star: on the pentagon, kis −0.43 is the pentagram's outline, its inner corners at 0.382 of the outer, which is 1/φ².
 
 ### form
 

@@ -544,6 +544,10 @@ var modelVariants = map[string][]struct{ suffix, head, set string }{
 	"clifford":     {{"density", "density (POINTS D)", "dn=1"}},
 	"dejong":       {{"density", "density (POINTS D)", "dn=1"}},
 	"chestahedron": {{"sphere-top", "inside its sphere, from above", chestSphereTop}},
+	"polyhedron":   {{"2d", "dim 2: the pentagon, kis −0.43: a pentagram", dimTwoLink("p.p=5&p.kis=-0.43")}},
+	"globe":        {{"2d", "dim 2: the circle", dimTwoLink("")}},
+	"torus":        {{"2d", "dim 2: the annulus, 6 stacks", dimTwoLink("p.stacks=6&p.slices=6")}},
+	"nestedcube":   {{"2d", "dim 2: the squares", dimTwoLink("")}},
 }
 
 // appLink is the page showing model key, with set (link fields joined by

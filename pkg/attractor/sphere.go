@@ -15,6 +15,8 @@ type torusShape struct {
 	minor   float32
 	stacksF float32
 	slicesF float32
+	// dimF is DIM: 3 the torus, 2 its annulus (TorusFlatMesh).
+	dimF float32
 
 	// rollF is the POLOIDAL spin rate: the tube turning about the torus's
 	// own core circle, the circle running through the middle of the tube body.
@@ -28,12 +30,15 @@ var torus = torusShape{
 	minor:   0.5,
 	stacksF: 30,
 	slicesF: 30,
+	dimF:    3,
 }
 
 // globeShape is the globe model: its knobs and the buffers its mesh is
 // refilled into.
 type globeShape struct {
 	latF float32
+	// dimF is DIM: 3 the globe, 2 its circle (GlobeFlatMesh).
+	dimF float32
 
 	// spiralF picks how the parallels are drawn: 0 rings, 1 one spiral.
 	spiralF float32
@@ -61,6 +66,7 @@ type globeShape struct {
 var globe = globeShape{
 	latF: 18,
 	lonF: 36,
+	dimF: 3,
 }
 
 func sphereVerticesIndices(radius float32, stacks, slices int, baseIdx uint16) ([]float32, []uint16) {
@@ -103,7 +109,11 @@ func (t *torusShape) generate() {
 	if gpu.staticGeomCached(glctx.Types.Line) {
 		return
 	}
-	vertices, indices := TorusMesh(t.major, t.minor, stacks, slices, t.rollPhi)
+	mesh := TorusMesh
+	if t.dimF == 2 {
+		mesh = TorusFlatMesh
+	}
+	vertices, indices := mesh(t.major, t.minor, stacks, slices, t.rollPhi)
 	gpu.uploadBuffersIndexed(vertices, indices, glctx.Types.Line)
 }
 
@@ -130,7 +140,11 @@ func (g *globeShape) generate() {
 	// answer to wanting the spiral to go the other way. This is the meridians'
 	// version of what the parallels get from par+dir, and the two compose: a
 	// spiral of parallels through a twisted cage is a ball of string.
-	g.vertBuf, g.idxBuf = GlobeMesh(int(g.latF), int(g.lonF), g.spiral(), g.revF >= 0.5, float64(g.twistF), g.vertBuf[:0], g.idxBuf[:0])
+	mesh := GlobeMesh
+	if g.dimF == 2 {
+		mesh = GlobeFlatMesh
+	}
+	g.vertBuf, g.idxBuf = mesh(int(g.latF), int(g.lonF), g.spiral(), g.revF >= 0.5, float64(g.twistF), g.vertBuf[:0], g.idxBuf[:0])
 	gpu.uploadBuffersIndexed(g.vertBuf, g.idxBuf, glctx.Types.Line)
 }
 

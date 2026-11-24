@@ -243,6 +243,7 @@ var attractorParams = map[string][]paramDef{
 		{"polyhedron-morph", "morph", &poly.morphF, 0, 0, 2, 0.01},
 		{"polyhedron-op", "op", &polyOpF, 0, 0, 6, 1},
 		{"polyhedron-kis", "kis", &poly.kisF, 0, -0.9, 1, 0.01},
+		{"polyhedron-dim", "dim", &poly.dimF, 3, 2, 3, 1},
 	},
 	// The Chestahedron: which of Frank Chester's forms, how far through its
 	// transformation (1 is the form as he shows it), and how much of what is
@@ -259,6 +260,7 @@ var attractorParams = map[string][]paramDef{
 		{"globe-par", "par", &globe.spiralF, 0, 0, 1, 1},
 		{"globe-rev", "dir", &globe.revF, 0, 0, 1, 1},
 		{"globe-twist", "twist", &globe.twistF, 0, -8, 8, 0.25},
+		{"globe-dim", "dim", &globe.dimF, 3, 2, 3, 1},
 	},
 	"torus": {
 		{"torus-R", "R", &torus.major, 1.5, 0.1, 5, 0.1},
@@ -266,6 +268,10 @@ var attractorParams = map[string][]paramDef{
 		{"torus-stacks", "stacks", &torus.stacksF, 30, 3, 100, 1},
 		{"torus-slices", "slices", &torus.slicesF, 30, 3, 100, 1},
 		{"torus-roll", "roll", &torus.rollF, 0, -8, 8, 0.1},
+		{"torus-dim", "dim", &torus.dimF, 3, 2, 3, 1},
+	},
+	"nestedcube": {
+		{"nestedcube-dim", "dim", &nestedCube.dimF, 3, 2, 3, 1},
 	},
 }
 
