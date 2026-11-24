@@ -85,7 +85,7 @@ func runShots() {
 // captureHero: panel docked to the bottom with the model raised above it
 // (pan-y lifts the model clear of the panel).
 func captureHero(c *cdp.Client) {
-	c.Eval(`location.hash='#lorenz&ar=0&rot=25,40,0&py=2&z=-18'`)
+	c.Eval(`location.hash='#lorenz&ar=0&rot=25,40,0&py=0.4&z=10'`)
 	c.Reload(3500 * time.Millisecond)
 	img, err := c.Screenshot()
 	if err != nil {
