@@ -199,6 +199,17 @@ const controlsBody = `
     </select><span class="knobhold" id="focus-n-stack"></span><input type="checkbox" id="link-sw" checked hidden data-doc="link-sw-cell"></div>
 </div>
 </div>
+<div class="sect" id="measure-module"><div class="sect-hdr" data-doc="measure">Measure</div>
+<!-- One P-unit (rackbank_js.go), made by buildMeasureBank: MODE arms the
+     picking (measure_js.go), and its buttons set and clear the unit. -->
+<div class="punit-grid catgrid" id="measure-bank">
+  <div class="punit" id="measure-mode-cell" data-param="measure-mode" data-doc="measure-mode-stack-cell" style="grid-row:1;grid-column:1"><span class="punit-top"><span class="plabel">mode</span></span><select id="measure-mode" style="display:none">
+      <option value="0" selected data-doc="measure-mode=0">off</option>
+      <option value="1" data-doc="measure-mode=1">dist</option>
+      <option value="2" data-doc="measure-mode=2">angle</option>
+    </select><span class="knobhold" id="measure-mode-stack"></span></div>
+</div>
+</div>
 <div class="sect" id="display-module"><div class="sect-hdr" data-doc="display">Display</div>
 <!-- P-units (rackbank_js.go), made by buildPUnitModule. The switches their
      buttons set are kept below, hidden: each is still one control to the

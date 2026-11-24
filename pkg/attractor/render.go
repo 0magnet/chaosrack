@@ -839,6 +839,8 @@ func renderLoop(this js.Value, args []js.Value) any {
 	// The model draws in its own colors while the Colors module is showing
 	// the backdrop's (backlayer_js.go).
 	defer back.frontIn()()
+	// The measurements, over whatever this frame draws (measure_js.go).
+	defer drawMeasureOverlay()
 
 	if run.paused {
 		// Redraw current geometry without advancing trail / auto-rotate.

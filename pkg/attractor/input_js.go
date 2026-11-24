@@ -99,10 +99,7 @@ func wireModelInput() {
 			pong.pointerPaddle(e.Get("clientX").Float(), e.Get("clientY").Float())
 			return nil
 		}
-		// A figure with weight can be picked up. What is under the cursor
-		// decides which gesture this is: on the figure takes hold of it, off it
-		// turns the view, and neither needs a mode set first.
-		if grab.grabBegin(e.Get("clientX").Float(), e.Get("clientY").Float()) {
+		if pressTakesFigure(e.Get("clientX").Float(), e.Get("clientY").Float()) {
 			return nil
 		}
 		dragging = true
@@ -128,7 +125,7 @@ func wireModelInput() {
 			return nil
 		}
 		if !dragging {
-			grab.grabHover(e.Get("clientX").Float(), e.Get("clientY").Float())
+			hoverFigure(e.Get("clientX").Float(), e.Get("clientY").Float())
 			return nil
 		}
 		// Self-heal a missed mouseup (a native drag or an off-window release
@@ -197,7 +194,7 @@ func wireModelInput() {
 		t := touches.Index(0)
 		// One finger on the figure moves the figure, off it turns the view —
 		// the same rule the mouse follows, so the two read the same way.
-		if grab.grabBegin(t.Get("clientX").Float(), t.Get("clientY").Float()) {
+		if pressTakesFigure(t.Get("clientX").Float(), t.Get("clientY").Float()) {
 			return nil
 		}
 		dragging = true
@@ -412,4 +409,23 @@ func wireWheelBindings() {
 		}
 	}
 	rebindParamWheel()
+}
+
+// pressTakesFigure reports whether a press goes to the figure rather than
+// turning the view: with Measure armed, a press near a point that matters
+// takes the point (measure_js.go); a figure with weight can be picked up,
+// on the figure taking hold of it (turtlegrab_js.go). Off them, a press
+// turns the view as always, and neither needs a mode set first.
+func pressTakesFigure(clientX, clientY float64) bool {
+	return measurePick(clientX, clientY) || grab.grabBegin(clientX, clientY)
+}
+
+// hoverFigure is the cursor's affordance over the figure: the point a press
+// would take while Measure is armed, else the hand over a figure with weight.
+func hoverFigure(clientX, clientY float64) {
+	if measureMode() != 0 {
+		measureHover(clientX, clientY)
+		return
+	}
+	grab.grabHover(clientX, clientY)
 }
