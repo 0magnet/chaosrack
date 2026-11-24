@@ -66,6 +66,16 @@ func planeLines(form, d int, morph float64, f func(float64, int) string) [4][2]s
 		l[0] = [2]string{"form", "Kepler 1595: triangle, square, pentagon, hexagon, each between circles"}
 		l[1] = [2]string{"ratio", "a triangle's inner circle is ½ its outer; Jupiter's orbit is 0.54 of Saturn's"}
 		l[2] = [2]string{"then", "the rest do not fit, and the next year he went to the solids: dim 3"}
+	case Penrose:
+		n := PenroseGenerations(d)
+		thick, thin := PenroseCounts(n)
+		l[0] = [2]string{"form", "Penrose's rhombs (1974): five-fold, and never repeating, " + strconv.Itoa(n) + " deflations of a sun"}
+		l[1] = [2]string{"count", strconv.Itoa(thick) + " thick, " + strconv.Itoa(thin) + " thin: " + f(float64(thick)/float64(max(thin, 1)), 4) + ", toward φ = " + f(Phi, 4)}
+		l[2] = [2]string{"rhombs", "angles 72° and 36°: every edge one length, every rhomb cut by φ"}
+	case SriYantra:
+		l[0] = [2]string{"form", "Sri Yantra: nine triangles, four up and five down, round the bindu"}
+		l[1] = [2]string{"marmas", "sides meeting three at a time: over-determined, four free parameters (Huet)"}
+		l[2] = [2]string{"from", "the solved coordinates after Kulaichev (1984); detail adds the petals and bhupura"}
 	default:
 		l[0] = [2]string{"form", "sunflower (Vogel 1979): seed n at r = √n, turned n·α"}
 		l[1] = [2]string{"α", f(SeedAngle(morph), 4) + "°; 360°/φ² = " + f(GoldenAngle, 4) + "° is the golden angle"}
@@ -114,6 +124,14 @@ func spaceLines(form, d int, morph float64, f func(float64, int) string) [4][2]s
 		l[0] = [2]string{"form", "Mysterium Cosmographicum (1596): cube, tetrahedron, dodecahedron, icosahedron, octahedron"}
 		l[1] = [2]string{"spheres", strings.Join(rs, " · ")}
 		l[2] = [2]string{"orbits", "Jupiter 0.54, Mars 0.16, Earth 0.10, Venus 0.08, Mercury 0.04 of Saturn's"}
+	case Penrose:
+		l[0] = [2]string{"form", "the rhombic triacontahedron: thirty golden rhombi"}
+		l[1] = [2]string{"rhomb", "its diagonals φ : 1; Penrose's rhombs are a 5-cube's shadow, this a 6-cube's"}
+		l[2] = [2]string{"corners", "the icosahedron's twelve and the dodecahedron's twenty"}
+	case SriYantra:
+		l[0] = [2]string{"form", "the Meru: the Sri Yantra raised as a mountain"}
+		l[1] = [2]string{"steps", "each enclosure above the one outside it, the bindu at the summit"}
+		l[2] = [2]string{"seen", "from above, it is the flat yantra again"}
 	default:
 		l[0] = [2]string{"form", "the Fibonacci sphere: seed n at height 1 − (2n+1)/N, turned n·α"}
 		l[1] = [2]string{"α", f(SeedAngle(morph), 4) + "°; the golden angle spaces them most evenly"}

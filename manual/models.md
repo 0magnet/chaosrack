@@ -237,6 +237,8 @@ The golden rectangle is the one a square cut from leaves another like it, and it
 The sunflower turns each seed 360°/φ² = 137.5° from the last, which packs them with no spokes, and the spirals you count in it are Fibonacci numbers.
 dim 3 draws each as the solid whose shadow it is, so that looking straight down the screen's axis gives the drawing back: the Seed of Life is eight spheres on a cube's corners seen down its diagonal, the hexagram is the star tetrahedron (the merkaba).
 kepler is Kepler's attempt to explain the planets' orbits: nested polygons between circles in 1595, and in 1596, in dim 3, the five regular solids nested between six spheres, Saturn's outermost — the Mysterium Cosmographicum.
+penrose is Penrose's tiling of thick and thin rhombs, grown by cutting triangles by φ, whose counts go to φ : 1; in dim 3 it is the rhombic triacontahedron, thirty golden rhombi.
+sriyantra is the Sri Yantra, whose nine triangles must meet three at a time, an over-determined construction drawn here from solved coordinates (after Kulaichev); in dim 3 it is the Meru, the yantra raised as a mountain.
 The Equation module gives each figure's numbers, Kepler's spheres against the planets' real orbits among them.
 
 ### Nested Cube

@@ -138,6 +138,9 @@ func formsGallery(key string) string {
 // shows, a flat construction face-on, as it is drawn on paper.
 func formAngle(key string, f formPreset) string {
 	if key == "sacred" {
+		if f.name == "sriyantra-3d" {
+			return "-1.1,0,0.3" // the Meru from the side, rising to its summit
+		}
 		for _, s := range f.set {
 			if s == [2]string{"sacred-dim", "3"} {
 				return "0.5,0.6,0"
@@ -152,10 +155,10 @@ func formAngle(key string, f formPreset) string {
 // DETAIL that shows it as it is usually drawn: flat, and then in space.
 func sacredForms() []formPreset {
 	flat := map[string]float64{
-		"vesica": 2, "seed": 1, "flower": 1, "fruit": 0, "metatron": 1, "golden": 3, "sunflower": 3, "merkaba": 1, "kepler": 0,
+		"vesica": 2, "seed": 1, "flower": 1, "fruit": 0, "metatron": 1, "golden": 3, "sunflower": 3, "merkaba": 1, "kepler": 0, "penrose": 2, "sriyantra": 3,
 	}
 	space := map[string]float64{
-		"vesica": 0, "seed": 0, "flower": 0, "fruit": 1, "metatron": 0, "golden": 1, "sunflower": 3, "merkaba": 0, "kepler": 0,
+		"vesica": 0, "seed": 0, "flower": 0, "fruit": 1, "metatron": 0, "golden": 1, "sunflower": 3, "merkaba": 0, "kepler": 0, "penrose": 0, "sriyantra": 3,
 	}
 	var out []formPreset
 	for _, dim := range []struct {

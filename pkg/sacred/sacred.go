@@ -34,11 +34,13 @@ const (
 	Phyllotaxis
 	Merkaba
 	Kepler
+	Penrose
+	SriYantra
 	NumForms
 )
 
 // FormNames are FORM's positions, for the knob and its tooltip.
-var FormNames = []string{"vesica", "seed", "flower", "fruit", "metatron", "golden", "sunflower", "merkaba", "kepler"}
+var FormNames = []string{"vesica", "seed", "flower", "fruit", "metatron", "golden", "sunflower", "merkaba", "kepler", "penrose", "sriyantra"}
 
 // MaxDetail is the DETAIL knob's top.
 const MaxDetail = 10
@@ -97,6 +99,10 @@ func build(form, d int, morph float64, dim int) []stroke {
 		return hexagram(d)
 	case Kepler:
 		return keplerPlane()
+	case Penrose:
+		return penrose(PenroseGenerations(d))
+	case SriYantra:
+		return sriYantra(d)
 	case Vesica:
 		return vesica(d)
 	case Seed:
@@ -133,6 +139,10 @@ func build3(form, d int, morph float64) []stroke {
 		return starTetrahedron(d)
 	case Kepler:
 		return keplerSpace()
+	case Penrose:
+		return triacontahedron()
+	case SriYantra:
+		return meru(d)
 	default:
 		return fibonacciSphere(Seeds(d), SeedAngle(morph))
 	}

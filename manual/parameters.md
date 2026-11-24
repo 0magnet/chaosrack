@@ -287,6 +287,7 @@ vesica: two circles of one radius, each through the other's center. seed: the Se
 fruit: the Fruit of Life, thirteen circles that touch and never cross. metatron: Metatron's Cube, the Fruit's thirteen centers each joined to every other.
 golden: the golden rectangle, its whirling squares and the spiral of quarter circles through them. sunflower: Vogel's model of a sunflower's seeds, each turned the golden angle from the last.
 merkaba: the hexagram, and in dim 3 the star tetrahedron. kepler: Kepler's nested polygons between circles (1595), and in dim 3 his five solids between the planets' spheres (1596).
+penrose: Penrose's rhombs, five-fold and never repeating, and in dim 3 the rhombic triacontahedron. sriyantra: the Sri Yantra's nine interlocking triangles, and in dim 3 the Meru.
 
 ### morph
 
@@ -300,6 +301,7 @@ Past 1 the figure twists into a vortex, each point turned about the center by it
 detail — how much there is. vesica: the line of centers and the lens's axis (1), the two equilateral triangles (2), the √3 rectangle round the lens (3).
 seed: the circle round it (1), the hexagram through its centers (2). flower: rings, one more than detail, to six. fruit: the hexagons through its centers (1). metatron: the circles under the lines (1).
 golden: four squares and two more for each step. sunflower: 150 seeds and 150 more for each step. merkaba: the hexagon (1), the circle round it (2).
+penrose: three generations of the tiling and one more a step, to seven. sriyantra: the circle round the triangles (1), the lotus rings (2), the bhupura (3); in dim 3 the Meru's lower steps from 1.
 In dim 3: vesica: the line of centers (1), the triangles (2). seed: the cube (1). flower: one shell of spheres to 1, two from 2. fruit: the cuboctahedron through its centers (1). metatron: the spheres under the lines (1).
 golden: the icosahedron's edges (1). merkaba: the cube round it (2), the octahedron the two tetrahedra share (3).
 
