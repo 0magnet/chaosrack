@@ -690,6 +690,11 @@ type variantShot struct {
 	// colors, when set, turns the gradient rings to something the variant can
 	// actually use before the shot.
 	colors *colorVariation
+	// link, when set, opens the page at the model with these link fields
+	// instead of running set: a shot of a view a link names (a zoom, a pose,
+	// auto-rotate off) is a photograph of exactly what that link opens. The
+	// model's own link is opened again afterwards.
+	link string
 }
 
 var modelVariantShots = map[string][]variantShot{
@@ -720,6 +725,9 @@ var modelVariantShots = map[string][]variantShot{
 	"hopalong": {densityShot},
 	"clifford": {densityShot},
 	"dejong":   {densityShot},
+	// The sphere inside the Chestahedron, seen straight down its axis and held
+	// still, as the README links it.
+	"chestahedron": {{suffix: "sphere-top", link: chestSphereTop, settle: 20 * time.Second}},
 }
 
 // densityShot is a map's density view, given time to fill in.
@@ -741,7 +749,11 @@ func setTurtleDim(d int) string {
 // captureVariants photographs each of a model's named variants.
 func captureVariants(c *cdp.Client, mode string) {
 	for _, v := range modelVariantShots[mode] {
-		c.Eval(v.set)
+		if v.link != "" {
+			c.Eval(fmt.Sprintf("location.hash=%q", "#"+mode+"&"+v.link))
+		} else {
+			c.Eval(v.set)
+		}
 		if v.colors != nil {
 			setColors(c, v.colors.gc, v.colors.gs)
 		}
@@ -784,6 +796,10 @@ func captureVariants(c *cdp.Client, mode string) {
 		if v.reset != "" {
 			c.Eval(v.reset)
 		}
+		if v.link != "" {
+			c.Eval(fmt.Sprintf("location.hash=%q", "#"+mode))
+			time.Sleep(20 * time.Second)
+		}
 		if v.colors != nil {
 			setColors(c, 2, 2)
 		}
@@ -814,3 +830,8 @@ const portraitTurns = 6
 var portraitSets = map[string][]string{
 	"turtle": {"turtle-trail=2"},
 }
+
+// chestSphereTop is the link fields of the Chestahedron's sphere from above:
+// FORM sphere, turned 90° about X, zoomed in, auto-rotate off. The README's
+// still and its link share it.
+const chestSphereTop = "z=41&ar=0&p.form=3&rot=90,0,0"
