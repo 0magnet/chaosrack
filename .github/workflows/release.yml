@@ -1,0 +1,80 @@
+name: release
+# A rolling release of main: binaries for each platform, rebuilt on every push
+# and replacing the last set. Its tag, "rolling", is not a semantic version, so
+# Go modules never resolve to it. The newest build is always at
+# https://github.com/0magnet/chaosrack/releases/latest
+# After ci, which publishes the wasm bundle the binary embeds.
+on:
+  workflow_run:
+    workflows: [ci]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: true
+
+jobs:
+  release:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+      - name: add the wasm builds
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          mine="chaosrack-wasm-$(git rev-parse --short=12 HEAD).tar.gz"
+          gh release download wasm -p "$mine" -O wasm.tar.gz || gh release download wasm -p chaosrack-wasm.tar.gz -O wasm.tar.gz
+          tar -xzf wasm.tar.gz -C assets
+          rm wasm.tar.gz
+      - name: build
+        env:
+          NAME: chaosrack
+          PKG: .
+        run: |
+          set -eu
+          mkdir -p dist stage
+          extra=$(ls README.md LICENSE* 2>/dev/null || true)
+          for t in linux/amd64 linux/arm64 linux/riscv64 darwin/amd64 darwin/arm64 windows/amd64; do
+            os=${t%/*} arch=${t#*/} ext=
+            [ "$os" = windows ] && ext=.exe
+            rm -rf stage/*
+            CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath -ldflags="-s -w" -o "stage/$NAME$ext" "$PKG"
+            [ -n "$extra" ] && cp $extra stage/
+            if [ "$os" = windows ]; then
+              (cd stage && zip -q -r "../dist/$NAME-$os-$arch.zip" .)
+            else
+              tar -czf "dist/$NAME-$os-$arch.tar.gz" -C stage .
+            fi
+          done
+          (cd dist && sha256sum * > checksums.txt)
+          ls -l dist
+      - name: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          sha=$(git rev-parse HEAD)
+          git tag -f rolling "$sha"
+          git push -f origin refs/tags/rolling
+          notes="Built from main at $sha. Each push to main replaces these binaries."
+          if gh release view rolling >/dev/null 2>&1; then
+            gh release edit rolling --notes "$notes" --latest
+          else
+            gh release create rolling --title "Latest build of main" --notes "$notes" --latest
+          fi
+          # Drop assets from a previous build that this one did not make.
+          for a in $(gh release view rolling --json assets --jq '.assets[].name'); do
+            [ -e "dist/$a" ] || gh release delete-asset rolling "$a" --yes
+          done
+          gh release upload rolling dist/* --clobber
