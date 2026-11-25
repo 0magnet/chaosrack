@@ -4,18 +4,18 @@ go 1.26.10
 
 require (
 	github.com/0magnet/afero v1.15.1-0.20261003211811-482680d00992
-	github.com/0magnet/audioprism-go v0.0.1-0.20261124162047-9e41b743b01c
+	github.com/0magnet/audioprism-go v0.0.1-0.20261125154959-0a65cf8376c8
 	github.com/0magnet/calvin v0.0.1-0.20261123113739-17ec6c31723c
 	github.com/0magnet/cdp v0.0.0-20261123111429-0df1c167f99e
-	github.com/0magnet/desk v0.0.3-0.20261124162943-5a94801eada7
-	github.com/0magnet/desk/panes v0.0.1-0.20261124162518-6775686f1d7a
+	github.com/0magnet/desk v0.0.3-0.20261125155545-690be9f15c7c
+	github.com/0magnet/desk/panes v0.0.1-0.20261125155205-1a4d5fd9a8b8
 	github.com/0magnet/lattice v0.0.0-20261123161050-bf176305f949
-	github.com/0magnet/pisano v0.0.0-20261124163856-041abc9b6ce3
+	github.com/0magnet/pisano v0.0.0-20261125155150-3d74548704a8
 	github.com/0magnet/rack-go v0.0.0-20261123111229-1f25c9a8c8de
 	github.com/0magnet/seat v0.0.0-20261123110925-c4459967b4de
 	github.com/0magnet/sh/v3 v3.13.2-0.20261024150911-145e01c63128
-	github.com/0magnet/tuiwasm v0.0.0-20261124164244-e1cb3fea1561
-	github.com/0magnet/websh v0.0.1-0.20261124162130-3e2dd700684d
+	github.com/0magnet/tuiwasm v0.0.0-20261125155843-c2c1bfbf44ff
+	github.com/0magnet/websh v0.0.1-0.20261125155041-38c9124db3d6
 	github.com/0magnet/winbox-go v0.0.1-0.20261123161251-43842cba2e0c
 	github.com/0magnet/xterm-go v0.0.1-0.20261123110635-ef9c274ca8f7
 	github.com/creack/pty v1.1.24
@@ -44,7 +44,7 @@ require (
 	github.com/0magnet/img2txt-go v0.0.1-0.20261123111343-1b18c2c35849 // indirect
 	github.com/0magnet/lolcat-go v0.0.1-0.20261123111453-dec4f447c5e5 // indirect
 	github.com/0magnet/proxima5 v0.0.0-20261014235132-1143d38a91d3 // indirect
-	github.com/0magnet/termanim v0.0.1-0.20261123161137-9b9cec0fc245 // indirect
+	github.com/0magnet/termanim v0.0.1-0.20261125035614-47ce7bc89a83 // indirect
 	github.com/0magnet/toilet-go v0.0.0-20261123112025-a6a2cc530103 // indirect
 	github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754 // indirect
 	github.com/alecthomas/chroma/v2 v2.27.0 // indirect
@@ -55,7 +55,7 @@ require (
 	github.com/bytedance/sonic/loader v0.5.3 // indirect
 	github.com/charmbracelet/colorprofile v0.4.3 // indirect
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834 // indirect
-	github.com/charmbracelet/ultraviolet v0.0.0-20261119151026-8ecbcf0e188c // indirect
+	github.com/charmbracelet/ultraviolet v0.0.0-20261125122737-8ed499892fb4 // indirect
 	github.com/charmbracelet/x/ansi v0.11.10 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.15 // indirect
 	github.com/charmbracelet/x/exp/slice v0.1.0 // indirect
