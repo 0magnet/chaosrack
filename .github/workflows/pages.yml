@@ -29,7 +29,7 @@ jobs:
       id-token: write
     environment:
       name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+      url: ${{ steps.deploy.outputs.page_url || steps.deploy-retry.outputs.page_url }}
     steps:
       # main as it is now, which includes the refresh commit ci just pushed.
       - uses: actions/checkout@v5
@@ -64,9 +64,17 @@ jobs:
           tar -xzf wasm.tar.gz -C assets
           rm wasm.tar.gz
           ls -l assets/gowasm/chaosrack.wasm assets/tinywasm/chaosrack-tiny.wasm assets/metersworker/meters.wasm
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: .
       - id: deploy
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
+        continue-on-error: true
+      # The deploy can find no artifact moments after a successful upload
+      # (seen 2026-11-25); a second try a little later succeeds.
+      - if: steps.deploy.outcome == 'failure'
+        run: sleep 30
+      - id: deploy-retry
+        if: steps.deploy.outcome == 'failure'
+        uses: actions/deploy-pages@v5
