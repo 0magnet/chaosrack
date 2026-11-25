@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help format tidy lint vet test test-wasm test-browser cover check install-linters docs pages onefile site readme-check site-check sweep lint-panel publish-gifs catalog check-names check-inits
+.PHONY: help format tidy lint vet test test-wasm test-browser cover check install-linters docs pages onefile site readme-check site-check sweep lint-panel publish-gifs highlights catalog check-names check-inits
 
 # The targets that matter are `format` and `check`, and they mean the same
 # thing here as in 0pcom/skywire, which is the reference for these repos.
@@ -222,6 +222,23 @@ sweep: wasm ## Walk every model and switch in a headless browser (nothing on scr
 	@d=$$(mktemp -d); trap 'rm -rf $$d' EXIT; \
 		go build -o $$d/chaosrack . && \
 		$$d/chaosrack uitool sweep --headless --serve $$d/chaosrack $(SWEEP)
+
+HL_AIZAWA := --set trail-slider=15277 --set rainbow-freq=14.0022 --set gradient-source=3 --set gradient-colors=4 --set auto-rotate=off --set aizawa-dt=0.006 --set aizawa-a=0.85 --set aizawa-b=0.654 --set aizawa-c=0.623 --set aizawa-d=3.07 --set aizawa-e=0.236 --set aizawa-f=0.02
+highlights: ## Render the README's highlights reel to docs/img/gif/highlights.gif (then make publish-gifs)
+	@# Five 4 s scenes drawn by the rack, crossfaded. The Aizawa values are
+	@# the end-on mandala from docs/aizawa-harmonics.md.
+	@d=$$(mktemp -d); trap 'rm -rf $$d' EXIT; \
+		go build -o $$d/chaosrack . && \
+		r="$$d/chaosrack render --engine rack --width 960 --height 540 --fps 30 --duration 4" && \
+		$$r --model thomas --set bg-visual=termanim --set gradient-colors=10 --set gradient-source=3 -o $$d/1.mp4 && \
+		$$r --model aizawa $(HL_AIZAWA) -o $$d/2.mp4 && \
+		$$r --model magnetosphere --set gradient-colors=4 --set gradient-source=3 --set auto-rotate=on --set line-width=2 -o $$d/3.mp4 && \
+		$$r --model clifford --set gradient-colors=8 --set gradient-source=0 --set trail-slider=200000 -o $$d/4.mp4 && \
+		$$r --model halvorsen --set phosphor=4 --set persist-trail=on --set auto-rotate=on -o $$d/5.mp4 && \
+		ffmpeg -loglevel error -y -i $$d/1.mp4 -i $$d/2.mp4 -i $$d/3.mp4 -i $$d/4.mp4 -i $$d/5.mp4 -filter_complex \
+			"[0][1]xfade=duration=0.6:offset=3.4[a];[a][2]xfade=duration=0.6:offset=6.8[b];[b][3]xfade=duration=0.6:offset=10.2[c];[c][4]xfade=duration=0.6:offset=13.6,fps=12,scale=640:-1:flags=lanczos,split[x][y];[x]palettegen=max_colors=192:stats_mode=diff[p];[y][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle" \
+			-loop 0 docs/img/gif/highlights.gif && \
+		ls -l docs/img/gif/highlights.gif
 
 publish-gifs: ## Put the GIFs (gallery and model loops) on the media branch and redeploy Pages
 	@# Neither set is on main (see .gitignore). media is ONE commit, replaced
