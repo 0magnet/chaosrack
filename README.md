@@ -10,6 +10,8 @@ to the analog computers at [glensstuff.com](https://glensstuff.com).
 [Model pages](https://chaosrack.magnetosphere.net/models/) ·
 [Manual](manual/)
 
+[![Five scenes drawn by chaosrack render: Thomas over the code rain, the tuned Aizawa mandala, magnetosphere field lines, the Clifford map, Halvorsen on amber phosphor](https://chaosrack.magnetosphere.net/docs/img/gif/highlights.gif)](https://chaosrack.magnetosphere.net/)
+
 [![The control panel docked at the bottom with the Lorenz attractor above it](docs/img/hero.jpg)](https://chaosrack.magnetosphere.net/#lorenz)
 
 - **92 models.** Flows (Lorenz, Rössler, Chua, Sprott A–S, 4-D hyper-Rössler, …),
