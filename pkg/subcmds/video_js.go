@@ -29,3 +29,5 @@ func rgbaVideo(string, int, func(int) *image.RGBA, []float32, []float32) error {
 func renderRack(*cobra.Command) error { return errNoVideo }
 
 func listRackParams() error { return nil }
+
+func rackModels() ([]string, error) { return nil, nil }

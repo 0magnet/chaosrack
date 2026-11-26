@@ -2,6 +2,7 @@ package rackhost
 
 import (
 	"math"
+	"slices"
 	"testing"
 	"time"
 )
@@ -147,5 +148,28 @@ func TestOfflineSelectsAFamilyMember(t *testing.T) {
 	}
 	if err := o.SelectModel("nosuchmodel"); err == nil {
 		t.Error("an unknown model was selected without complaint")
+	}
+}
+
+// TestOfflineModelsAreSelectable: every key Models lists is one SelectModel
+// takes, family members included, and none is empty.
+func TestOfflineModelsAreSelectable(t *testing.T) {
+	o, err := NewOffline(30)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ms := o.Models()
+	for _, want := range []string{"lorenz", "sprottb", "bifurcation", "scopeclock"} {
+		if !slices.Contains(ms, want) {
+			t.Errorf("Models leaves out %s", want)
+		}
+	}
+	for _, k := range ms {
+		if k == "" {
+			t.Fatal("Models lists an empty key")
+		}
+		if err := o.SelectModel(k); err != nil {
+			t.Errorf("Models lists %s, which SelectModel refuses: %v", k, err)
+		}
 	}
 }

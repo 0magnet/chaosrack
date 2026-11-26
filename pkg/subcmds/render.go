@@ -109,8 +109,10 @@ stereo and polar embeddings, the xy scope, the spectrogram, the RTA, the
 transfer function, the recurrence plot and the waterfall. render records them
 from this machine's audio, or draws them from a built-in test signal.
 
-Page-based models such as the terminal, the desk and the STL viewer are not
-listed, because they need a browser.`,
+The models marked "the rack" are drawn by the native rack only: the
+bifurcation diagram, the Poincaré section, the scope clock and text, the
+terminal animations, the lattice, the games and the rest. render draws them to
+a video, a GIF or, after a few seconds' run, a PNG.`,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			labels := map[string][2]string{}
 			for _, g := range attractor.Catalog() {
@@ -140,6 +142,17 @@ listed, because they need a browser.`,
 			for _, k := range audioInputModels() {
 				if err := row(k, "--audio or --signal"); err != nil {
 					return err
+				}
+			}
+			rack, err := rackModels()
+			if err != nil {
+				return err
+			}
+			for _, k := range rack {
+				if !figureDraws(k) && !isAudioInput(k) {
+					if err := row(k, "the rack"); err != nil {
+						return err
+					}
 				}
 			}
 			return w.Flush()

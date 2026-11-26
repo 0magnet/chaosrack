@@ -28,7 +28,17 @@ func figureFor(model string) (attractor.Figure, error) {
 	if f, ok := attractor.StaticFigure(model, renderPts); ok {
 		return f, nil
 	}
-	return attractor.Figure{}, fmt.Errorf("no model named %q that can be drawn without a browser; chaosrack models lists them", model)
+	return attractor.Figure{}, fmt.Errorf("the figure renderer has no model %q; chaosrack models lists them, and the rack draws the rest", model)
+}
+
+// figureDraws reports whether the figure renderer draws model.
+func figureDraws(model string) bool {
+	for _, k := range drawableKeys() {
+		if k == model {
+			return true
+		}
+	}
+	return false
 }
 
 // drawableKeys is every model render can draw, in catalog order, then any

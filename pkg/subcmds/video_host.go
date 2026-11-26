@@ -54,6 +54,10 @@ func videoFlags(renderCmd *cobra.Command) {
 // videoExts are the containers render writes through ffmpeg.
 var videoExts = map[string]bool{".mp4": true, ".webm": true, ".mkv": true, ".mov": true}
 
+// rackStillSeconds is how long the rack runs before a still is taken, when no
+// --duration or --frames says.
+const rackStillSeconds = 3
+
 // isVideo reports whether name is a video by its extension.
 func isVideo(name string) bool { return videoExts[strings.ToLower(filepath.Ext(name))] }
 
@@ -65,9 +69,20 @@ func useRack() (bool, error) {
 	case "figure":
 		return false, nil
 	case "auto", "":
-		return isVideo(renderOut), nil
+		// A model only the rack draws goes to the rack for a still as well.
+		rackOnly := renderModel != "" && !figureDraws(renderModel) && !isAudioInput(renderModel)
+		return isVideo(renderOut) || rackOnly, nil
 	}
 	return false, fmt.Errorf("--engine %q: use rack, figure or auto", renderEngine)
+}
+
+// rackModels lists the models the rack draws.
+func rackModels() ([]string, error) {
+	o, err := rackhost.NewOffline(renderFPS)
+	if err != nil {
+		return nil, err
+	}
+	return o.Models(), nil
 }
 
 // decodeAudio reads a recording through ffmpeg as stereo at the rate render
@@ -395,6 +410,9 @@ func renderRack(cmd *cobra.Command) error {
 		}
 	}
 	frames := rackLength(cmd, live, len(l))
+	if frames <= 0 && !live && !isVideo(renderOut) && strings.EqualFold(filepath.Ext(renderOut), ".png") {
+		frames = rackStillSeconds * renderFPS // a still is the scene once it has filled in
+	}
 	if frames <= 0 && !live {
 		if isAudioInput(renderModel) {
 			return fmt.Errorf("%s is drawn from the rack's signal: %s, or --duration SECONDS draws what the rack's generators make", renderModel, audioHint)

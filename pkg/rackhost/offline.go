@@ -106,6 +106,31 @@ func (o *Offline) Set(id, value string) error {
 	return o.r.Set(id, v)
 }
 
+// Models lists the keys SelectModel takes, in the selector's order with each
+// family's members after it.
+func (o *Offline) Models() []string {
+	r := o.r
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	var out []string
+	add := func(keys []string) {
+		for _, k := range keys {
+			if k != "" && !slices.Contains(out, k) {
+				out = append(out, k)
+			}
+		}
+	}
+	if r.selector != "" {
+		add(r.ctls[r.byID[r.selector]].Options)
+	}
+	for _, c := range r.ctls {
+		if isFamily(c.ID) {
+			add(c.Options)
+		}
+	}
+	return out
+}
+
 // SelectModel puts the model selector on key, or, for a member of a family
 // (Sprott B–S), on the family's position with its lettered dial on key.
 func (o *Offline) SelectModel(key string) error {
