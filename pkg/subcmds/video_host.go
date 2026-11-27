@@ -364,7 +364,6 @@ func progress(done, of int) {
 // figureOnly are render's flags that the figure renderer reads and the rack
 // does not, with the panel's control that does the same, where there is one.
 var figureOnly = map[string]string{
-	"angle":      "rotation-controls-x/y/z turn it; a drag is the page's",
 	"turn":       "rotation-controls-x/y/z",
 	"rock":       "",
 	"tumble":     "",
@@ -395,6 +394,12 @@ func renderRack(cmd *cobra.Command) error {
 	o, err := setUpRack()
 	if err != nil {
 		return err
+	}
+	if cmd.Flags().Changed("angle") {
+		if len(renderSpin) != 3 {
+			return errors.New("--angle takes x,y,z in radians")
+		}
+		o.SetPose([3]float64{renderSpin[0], renderSpin[1], renderSpin[2]})
 	}
 	// The capture, if one is given: an audio model on the rack draws the rack's
 	// signal, which its own generators and Model Out can make with no capture

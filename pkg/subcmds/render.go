@@ -74,7 +74,7 @@ func renderFlags(renderCmd *cobra.Command) {
 	renderCmd.Flags().Float64Var(&renderSettle, "transient", 500, "model time to integrate and discard before drawing, so the run-in from the initial condition is not drawn")
 	renderCmd.Flags().StringVar(&renderIntg, "integrator", "rk4", "how flows are stepped: rk4 (what the equations do) or euler (forward Euler, a different system at these steps)")
 	renderCmd.Flags().Float64Var(&renderFitTrim, "fit-trim", 0.002, "in an animation, frame to all but this share of the points and of the lit pixels at each side, so a rare excursion runs out of frame rather than shrinking every frame (0 = frame everything)")
-	renderCmd.Flags().Float64SliceVar(&renderSpin, "angle", []float64{0.6, 0.9, 0}, "view angles x,y,z in radians")
+	renderCmd.Flags().Float64SliceVar(&renderSpin, "angle", []float64{0.6, 0.9, 0}, "view angles x,y,z in radians; on the rack, the starting pose (a page link's rot, in radians)")
 	renderCmd.Flags().IntVar(&renderColors, "colors", 2, "palette: 1 mono, 2 two-color (the page's default), 3 three-color, 4 rainbow")
 	renderCmd.Flags().BoolVar(&renderCheck, "check", false, "integrate every model and report the ones that draw nothing")
 	renderCmd.Flags().StringArrayVar(&renderSet, "set", nil, "turn a control before drawing, as id=value (repeatable)")

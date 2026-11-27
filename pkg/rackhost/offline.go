@@ -163,6 +163,15 @@ func (o *Offline) SelectModel(key string) error {
 	return fmt.Errorf("the rack has no model %q", key)
 }
 
+// SetPose puts the model at the X→Y→Z euler pose a, in radians, as a page
+// link's rot does (in degrees there); the rate knobs and auto-rotate turn it
+// on from there.
+func (o *Offline) SetPose(a [3]float64) {
+	o.r.mu.Lock()
+	o.r.poseTo = &a
+	o.r.mu.Unlock()
+}
+
 // Samples is how many samples frame i stands for: the frames' shares of a
 // second, counted so that they add up to the second exactly.
 func (o *Offline) Samples(i int) int {
