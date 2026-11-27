@@ -239,6 +239,9 @@ func onModeChange(this js.Value, args []js.Value) any {
 		spect.restoreAutoRotateAfterSpectrogram()
 		view.autoFitCamera()
 	}
+	// After that fit, which was made to one frame: the next frame of an
+	// audio embedding fits its own bound again.
+	armAudioFits()
 	// FVF audio-out follows the mode: resume if re-entering FVF with Listen
 	// on; stop when leaving so no stray audio plays under other models.
 	if run.selectedMode == "fvf" {

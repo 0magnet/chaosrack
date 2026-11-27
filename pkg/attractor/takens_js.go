@@ -128,6 +128,17 @@ func init() {
 	}
 }
 
+// armAudioFits forgets the audio embeddings' camera fits after a model
+// change has fitted the camera to one frame, so their next frame fits their
+// bound again: Takens after a turn through Stereo came back larger.
+func armAudioFits() {
+	emb.fitGain = 0
+	polar.fitGain = 0
+	for _, s := range viewInsts {
+		s.fitGain = 0
+	}
+}
+
 // takensFitExtent is the extent the camera is fitted to: the worst case a fixed
 // scale can produce. Samples are bounded to ±1, so no coordinate exceeds gain,
 // and the cube's corner is √3 of that.
