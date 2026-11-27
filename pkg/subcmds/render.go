@@ -47,6 +47,7 @@ var (
 	renderCheck  bool
 	renderColors int
 	renderSet    []string
+	renderMod    []string
 	renderParams bool
 	renderFrames int
 	renderFPS    int
@@ -78,6 +79,7 @@ func renderFlags(renderCmd *cobra.Command) {
 	renderCmd.Flags().IntVar(&renderColors, "colors", 2, "palette: 1 mono, 2 two-color (the page's default), 3 three-color, 4 rainbow")
 	renderCmd.Flags().BoolVar(&renderCheck, "check", false, "integrate every model and report the ones that draw nothing")
 	renderCmd.Flags().StringArrayVar(&renderSet, "set", nil, "turn a control before drawing, as id=value (repeatable)")
+	renderCmd.Flags().StringArrayVar(&renderMod, "mod", nil, "route the signal to a control, as a page link's m. key does: id=source~bands~depth[~shape], e.g. lorenz-r=st~0,0,0,0,0,0,0,0~0.4~swing (repeatable)")
 	renderCmd.Flags().BoolVar(&renderParams, "params", false, "list the controls that --set can turn, with their ranges")
 	renderCmd.Flags().IntVar(&renderFrames, "frames", 0, "write an animation of this many frames (.gif or .svg); 0 = a still")
 	renderCmd.Flags().IntVar(&renderFPS, "fps", 20, "frames per second for --frames")

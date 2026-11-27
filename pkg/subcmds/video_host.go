@@ -364,25 +364,24 @@ func progress(done, of int) {
 // figureOnly are render's flags that the figure renderer reads and the rack
 // does not, with the panel's control that does the same, where there is one.
 var figureOnly = map[string]string{
-	"turn":       "rotation-controls-x/y/z",
-	"rock":       "",
-	"tumble":     "",
-	"walk":       "",
-	"colors":     "gradient-colors",
-	"gradient":   "gradient-source",
-	"background": "ck-color-bg-hue and ck-color-bg-lvl",
-	"crop":       "camera-zoom, pan-x, pan-y",
-	"fit-trim":   "camera-zoom",
-	"sweep":      "",
-	"live":       "",
-	"points":     "trail-slider",
-	"trail":      "trail-slider",
-	"seconds":    "",
-	"transient":  "",
-	"tau":        "takens-tau",
-	"window":     "takens-win (and the other models' -win)",
-	"impulse":    "",
-	"check":      "",
+	"turn":      "rotation-controls-x/y/z",
+	"rock":      "",
+	"tumble":    "",
+	"walk":      "",
+	"colors":    "gradient-colors",
+	"gradient":  "gradient-source",
+	"crop":      "camera-zoom, pan-x, pan-y",
+	"fit-trim":  "camera-zoom",
+	"sweep":     "",
+	"live":      "",
+	"points":    "trail-slider",
+	"trail":     "trail-slider",
+	"seconds":   "",
+	"transient": "",
+	"tau":       "takens-tau",
+	"window":    "takens-win (and the other models' -win)",
+	"impulse":   "",
+	"check":     "",
 }
 
 // renderRack draws the render with the rack: a video, a GIF, or the last
@@ -400,6 +399,17 @@ func renderRack(cmd *cobra.Command) error {
 			return errors.New("--angle takes x,y,z in radians")
 		}
 		o.SetPose([3]float64{renderSpin[0], renderSpin[1], renderSpin[2]})
+	}
+	// The page's canvas is black; the panel's own near-black is the panel's.
+	o.SetBackground(background())
+	for _, s := range renderMod {
+		id, spec, ok := strings.Cut(s, "=")
+		if !ok {
+			return fmt.Errorf("--mod %q is not id=route", s)
+		}
+		if err := o.Route(strings.TrimSpace(id), spec); err != nil {
+			return fmt.Errorf("--mod: %w", err)
+		}
 	}
 	// The capture, if one is given: an audio model on the rack draws the rack's
 	// signal, which its own generators and Model Out can make with no capture

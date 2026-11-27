@@ -2,11 +2,13 @@ package rackhost
 
 import (
 	"fmt"
+	"image/color"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/0magnet/chaosrack/pkg/attractor"
 	"github.com/0magnet/chaosrack/pkg/rackpic"
 	"github.com/0magnet/chaosrack/pkg/racktui"
 )
@@ -170,6 +172,59 @@ func (o *Offline) SetPose(a [3]float64) {
 	o.r.mu.Lock()
 	o.r.poseTo = &a
 	o.r.mu.Unlock()
+}
+
+// SetBackground draws the scene on c rather than on the panel's near-black,
+// as a video of the page wants its canvas's black. It is the whole
+// process's: a render draws one rack.
+func (o *Offline) SetBackground(c color.RGBA) { sceneBack = c }
+
+// Route routes control id as a page link's m. or vm. key does, from spec in
+// the link's own form: source~bands~depth[~shape], such as
+// st~0,0,0,0,0,0,0,0~0.4~swing. The bands may be fewer than the EQ's.
+func (o *Offline) Route(id, spec string) error {
+	f := strings.Split(spec, "~")
+	if len(f) != 3 && len(f) != 4 {
+		return fmt.Errorf("%s: a route is source~bands~depth[~shape], not %q", id, spec)
+	}
+	var m modRoute
+	for _, c := range attractor.ModChannels() {
+		if c.Name == f[0] || c.Key == f[0] { // the name a link stores, or the column's label
+			m.channel = c.Name
+		}
+	}
+	if m.channel == "" {
+		return fmt.Errorf("%s: no source %q", id, f[0])
+	}
+	for i, b := range strings.Split(f[1], ",") {
+		if i >= len(m.bands) {
+			break
+		}
+		v, err := strconv.ParseFloat(strings.TrimSpace(b), 32)
+		if err != nil {
+			return fmt.Errorf("%s: band %q: %w", id, b, err)
+		}
+		m.bands[i] = float32(v)
+	}
+	lvl, err := strconv.ParseFloat(f[2], 32)
+	if err != nil {
+		return fmt.Errorf("%s: depth %q: %w", id, f[2], err)
+	}
+	m.level = float32(lvl)
+	if len(f) == 4 {
+		if !attractor.IsModShape(f[3]) {
+			return fmt.Errorf("%s: no shape %q", id, f[3])
+		}
+		m.shape = f[3]
+	}
+	r := o.r
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.modRow(id) < 0 {
+		return fmt.Errorf("the Mod matrix has no row %q for this model", id)
+	}
+	r.mod.routes[id] = m
+	return nil
 }
 
 // Samples is how many samples frame i stands for: the frames' shares of a

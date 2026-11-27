@@ -191,9 +191,16 @@ func (v View) RenderColors(dst *image.RGBA, vertices []float32, indices []uint16
 			continue
 		}
 		dx, dy := px[bIdx]-px[a], py[bIdx]-py[a]
-		steps := int(math.Max(math.Abs(dx), math.Abs(dy))) + 1
+		// Only the part on the picture is stepped: a trajectory that blows
+		// up puts its ends millions of pixels out, and a step a pixel is
+		// then billions of steps.
+		t0, t1, ok := clipSegment(px[a], py[a], dx, dy, float64(b.Min.X-brush), float64(b.Min.Y-brush), float64(b.Max.X+brush), float64(b.Max.Y+brush))
+		if !ok {
+			continue
+		}
+		steps := int(math.Max(math.Abs(dx), math.Abs(dy))*(t1-t0)) + 1
 		for s := 0; s <= steps; s++ {
-			t := float64(s) / float64(steps)
+			t := t0 + (t1-t0)*float64(s)/float64(steps)
 			var c [3]float32
 			for k := range 3 {
 				c[k] = cr[a][k] + float32(t)*(cr[bIdx][k]-cr[a][k])
@@ -309,4 +316,35 @@ func ModelBounds(vertices []float32) (lo, hi [3]float32) {
 		}
 	}
 	return lo, hi
+}
+
+// clipSegment is the part of the segment from (x, y) by (dx, dy) inside the
+// rectangle, as the span t0..t1 of its parameter (Liang–Barsky); ok is false
+// when none of it is inside, or when an end is not a number.
+func clipSegment(x, y, dx, dy, xmin, ymin, xmax, ymax float64) (t0, t1 float64, ok bool) {
+	for _, v := range [4]float64{x, y, dx, dy} {
+		if math.IsNaN(v) || math.IsInf(v, 0) {
+			return 0, 0, false
+		}
+	}
+	t0, t1 = 0, 1
+	for _, e := range [4][2]float64{{-dx, x - xmin}, {dx, xmax - x}, {-dy, y - ymin}, {dy, ymax - y}} {
+		p, q := e[0], e[1]
+		if p == 0 {
+			if q < 0 {
+				return 0, 0, false
+			}
+			continue
+		}
+		r := q / p
+		if p < 0 {
+			t0 = max(t0, r)
+		} else {
+			t1 = min(t1, r)
+		}
+		if t0 > t1 {
+			return 0, 0, false
+		}
+	}
+	return t0, t1, true
 }
