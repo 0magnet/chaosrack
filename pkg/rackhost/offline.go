@@ -211,7 +211,7 @@ func (o *Offline) Route(id, spec string) error {
 		return fmt.Errorf("%s: depth %q: %w", id, f[2], err)
 	}
 	m.level = float32(lvl)
-	if len(f) == 4 {
+	if len(f) == 4 && f[3] != "push" { // push is the default, which a link leaves out
 		if !attractor.IsModShape(f[3]) {
 			return fmt.Errorf("%s: no shape %q", id, f[3])
 		}
