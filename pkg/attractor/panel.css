@@ -592,11 +592,13 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
    out. So is a model's cell while its model is not running (not .live): the
    rack powered down leaves the last model's controls in the bank, assigned to
    nothing, and they read as the unassigned positions beside them do. */
-:is(.cell-blank,.dormant,.cell-off,.crt-dim,.pal-dim,.layer-dim,.modules .punit[data-mode]:not(.live)) :is(.led,.numin){color:transparent;text-shadow:none;}
+:is(.cell-blank,.dormant,.crt-dim,.pal-dim,.layer-dim,.modules .punit[data-mode]:not(.live)) :is(.led,.numin){color:transparent;text-shadow:none;}
 :is(.cell-blank,.dormant,.crt-dim,.pal-dim,.layer-dim,.modules .punit[data-mode]:not(.live)) .dmd .dmd-on{opacity:.07;filter:none;}
 /* A control that is off (cell-off: its module's switch, or the layer it is for, is
-   off) keeps its legend and loses its readout: the knob is still that knob. */
-.cell-off .dmdval .dmd .dmd-on{opacity:.07;filter:none;}
+   off) keeps its legend and reads its value dimmed: turned, it says where it is
+   before its switch puts it in play. */
+.cell-off :is(.led,.numin){opacity:.4;text-shadow:none;}
+.cell-off .dmdval .dmd .dmd-on{opacity:.4;filter:none;}
 /* The LEDs round a bank knob out: the dial sets its colors inline, so this
    names the dots, as specific as the rules that light them and one more. */
 .modules .dmdcell:is(.cell-blank,.dormant,.cell-off,[data-mode]:not(.live)) .value-dial .vdial-tick{background:var(--led-bg,#170000);box-shadow:inset 0 0 0 1px var(--led-bd,#3a0000);}
