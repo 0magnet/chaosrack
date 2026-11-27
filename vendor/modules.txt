@@ -11,7 +11,7 @@ github.com/0magnet/afero/mem
 ## explicit; go 1.26.10
 github.com/0magnet/audioprism-go/pkg/spectrogram
 github.com/0magnet/audioprism-go/pkg/wsaudio
-# github.com/0magnet/bottle v0.0.1-0.20261028202309-2b922f28f74e
+# github.com/0magnet/bottle v0.0.1-0.20261127013808-02b522ecff04
 ## explicit; go 1.24
 github.com/0magnet/bottle/proc
 # github.com/0magnet/calvin v0.0.1-0.20261125222219-4228c77b6748
@@ -24,11 +24,11 @@ github.com/0magnet/cdp
 # github.com/0magnet/coloredcobra v1.0.4-0.20261012213101-faa6bd8f94c5
 ## explicit; go 1.26.0
 github.com/0magnet/coloredcobra
-# github.com/0magnet/desk v0.0.3-0.20261126153730-5f6aa79c050e
+# github.com/0magnet/desk v0.0.3-0.20261127152616-ed4c49118c0f
 ## explicit; go 1.26.6
 github.com/0magnet/desk
 github.com/0magnet/desk/dom
-# github.com/0magnet/desk/panes v0.0.1-0.20261126153416-9ec0c5cb8e67
+# github.com/0magnet/desk/panes v0.0.1-0.20261127152233-ad28384f67c8
 ## explicit; go 1.26.6
 github.com/0magnet/desk/panes/files
 github.com/0magnet/desk/panes/hostagent
@@ -59,7 +59,7 @@ github.com/0magnet/lattice
 # github.com/0magnet/lolcat-go v0.0.1-0.20261125222059-e56e4561ced3
 ## explicit; go 1.25.0
 github.com/0magnet/lolcat-go/lol
-# github.com/0magnet/pisano v0.0.0-20261126153302-ae922f28cb23
+# github.com/0magnet/pisano v0.0.0-20261127152453-c5554569aa5a
 ## explicit; go 1.26.6
 github.com/0magnet/pisano/pkg/pisano
 # github.com/0magnet/proxima5 v0.0.0-20261014235132-1143d38a91d3
@@ -126,7 +126,7 @@ github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20261126154118-e6afde6a6bdc
+# github.com/0magnet/tuiwasm v0.0.0-20261127152658-8cc1244414e8
 ## explicit; go 1.26.7
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
@@ -146,7 +146,7 @@ github.com/0magnet/tuiwasm/xwrite
 # github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754
 ## explicit; go 1.26.6
 github.com/0magnet/u-root/pkg/ls
-# github.com/0magnet/websh v0.0.1-0.20261126153202-8e5238d70cff
+# github.com/0magnet/websh v0.0.1-0.20261127151940-35cc3448b035
 ## explicit; go 1.26.6
 github.com/0magnet/websh/console
 github.com/0magnet/websh/progressive
@@ -278,7 +278,7 @@ github.com/coder/websocket/internal/wsjs
 # github.com/creack/pty v1.1.24
 ## explicit; go 1.18
 github.com/creack/pty
-# github.com/dlclark/regexp2/v2 v2.13.2
+# github.com/dlclark/regexp2/v2 v2.13.3
 ## explicit; go 1.25
 github.com/dlclark/regexp2/v2
 github.com/dlclark/regexp2/v2/helpers

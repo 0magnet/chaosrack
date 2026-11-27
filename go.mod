@@ -7,15 +7,15 @@ require (
 	github.com/0magnet/audioprism-go v0.0.1-0.20261126153123-dfdf2ce46fca
 	github.com/0magnet/calvin v0.0.1-0.20261125222219-4228c77b6748
 	github.com/0magnet/cdp v0.0.0-20261123111429-0df1c167f99e
-	github.com/0magnet/desk v0.0.3-0.20261126153730-5f6aa79c050e
-	github.com/0magnet/desk/panes v0.0.1-0.20261126153416-9ec0c5cb8e67
+	github.com/0magnet/desk v0.0.3-0.20261127152616-ed4c49118c0f
+	github.com/0magnet/desk/panes v0.0.1-0.20261127152233-ad28384f67c8
 	github.com/0magnet/lattice v0.0.0-20261126152811-e7f32a5ac5af
-	github.com/0magnet/pisano v0.0.0-20261126153302-ae922f28cb23
+	github.com/0magnet/pisano v0.0.0-20261127152453-c5554569aa5a
 	github.com/0magnet/rack-go v0.0.0-20261123111229-1f25c9a8c8de
 	github.com/0magnet/seat v0.0.0-20261123110925-c4459967b4de
 	github.com/0magnet/sh/v3 v3.13.2-0.20261024150911-145e01c63128
-	github.com/0magnet/tuiwasm v0.0.0-20261126154118-e6afde6a6bdc
-	github.com/0magnet/websh v0.0.1-0.20261126153202-8e5238d70cff
+	github.com/0magnet/tuiwasm v0.0.0-20261127152658-8cc1244414e8
+	github.com/0magnet/websh v0.0.1-0.20261127151940-35cc3448b035
 	github.com/0magnet/winbox-go v0.0.1-0.20261126152900-d5f76c817f58
 	github.com/0magnet/xterm-go v0.0.1-0.20261123110635-ef9c274ca8f7
 	github.com/creack/pty v1.1.24
@@ -37,7 +37,7 @@ require (
 
 require (
 	charm.land/lipgloss/v2 v2.1.1 // indirect
-	github.com/0magnet/bottle v0.0.1-0.20261028202309-2b922f28f74e // indirect
+	github.com/0magnet/bottle v0.0.1-0.20261127013808-02b522ecff04 // indirect
 	github.com/0magnet/coloredcobra v1.0.4-0.20261012213101-faa6bd8f94c5 // indirect
 	github.com/0magnet/glamour v1.0.1-0.20261004193946-db176df590f5 // indirect
 	github.com/0magnet/go-dsp v0.0.1-0.20261013221717-1ec76fa9affb // indirect
@@ -66,7 +66,7 @@ require (
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/cloudwego/base64x v0.1.7 // indirect
 	github.com/coder/websocket v1.8.15 // indirect
-	github.com/dlclark/regexp2/v2 v2.13.2 // indirect
+	github.com/dlclark/regexp2/v2 v2.13.3 // indirect
 	github.com/dunglas/httpsfv v1.1.2 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/fatih/color v1.19.0 // indirect
