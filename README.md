@@ -14,6 +14,12 @@ to the analog computers at [glensstuff.com](https://glensstuff.com).
 
 [![The control panel docked at the bottom with the Lorenz attractor above it](docs/img/hero.jpg)](https://chaosrack.magnetosphere.net/#lorenz)
 
+[![Nine models at once, from the showcase video: Aizawa, the stereo scope, a spectrogram, a Takens embedding, Lorenz, Clifford, a torus, Halvorsen and a second spectrogram](docs/img/four.jpg)](https://chaosrack.magnetosphere.net/docs/video/four.mp4)
+
+**[Showcase video](https://chaosrack.magnetosphere.net/docs/video/four.mp4)** (37 s, with sound):
+the second drop of NumberNin6's "Four", a model a bar, audio-modulated and
+drawn by `chaosrack render` ([script](docs/video/four.sh)).
+
 - **92 models.** Flows (Lorenz, Rössler, Chua, Sprott A–S, 4-D hyper-Rössler, …),
   maps (Hénon, Ikeda, Clifford, de Jong, Gumowski–Mira, Tinkerbell, Hopalong, Chirikov),
   parametric figures, an integer-sequence turtle with rigid-body physics,

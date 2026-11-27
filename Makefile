@@ -240,20 +240,20 @@ highlights: ## Render the README's highlights reel to docs/img/gif/highlights.gi
 			-loop 0 docs/img/gif/highlights.gif && \
 		ls -l docs/img/gif/highlights.gif
 
-publish-gifs: ## Put the GIFs (gallery and model loops) on the media branch and redeploy Pages
-	@# Neither set is on main (see .gitignore). media is ONE commit, replaced
+publish-gifs: ## Put the GIFs (gallery and model loops) and videos on the media branch and redeploy Pages
+	@# None of them is on main (see .gitignore). media is ONE commit, replaced
 	@# each time rather than added to, so remaking the GIFs never grows the
 	@# repository; Pages adds them to the site (pages.yml). The commit starts
-	@# from what media holds, so publishing one set keeps the other.
-	@ls docs/img/gif/*.gif docs/img/model/*.gif 2>/dev/null | grep -q . || { echo "no GIFs: run chaosrack uitool gifs or uitool portraits first"; exit 1; }
+	@# from what media holds, so publishing one set keeps the others.
+	@ls docs/img/gif/*.gif docs/img/model/*.gif docs/video/*.mp4 2>/dev/null | grep -q . || { echo "no GIFs: run chaosrack uitool gifs or uitool portraits first"; exit 1; }
 	@git fetch -q origin media
 	@idx=$$(mktemp -u); trap 'rm -f $$idx' EXIT; \
 		GIT_INDEX_FILE=$$idx git read-tree FETCH_HEAD && \
-		for d in docs/img/gif docs/img/model; do \
-			if ls $$d/*.gif >/dev/null 2>&1; then GIT_INDEX_FILE=$$idx git add -f $$d/*.gif || exit 1; fi; \
+		for g in 'docs/img/gif/*.gif' 'docs/img/model/*.gif' 'docs/video/*.mp4'; do \
+			if ls $$g >/dev/null 2>&1; then GIT_INDEX_FILE=$$idx git add -f $$g || exit 1; fi; \
 		done && \
 		tree=$$(GIT_INDEX_FILE=$$idx git write-tree) && \
-		commit=$$(git commit-tree $$tree -m "media: the animated gallery and the models' loops") && \
+		commit=$$(git commit-tree $$tree -m "media: the animated gallery, the models' loops and the videos") && \
 		git push -f origin $$commit:refs/heads/media && \
 		gh workflow run pages.yml --ref main
 

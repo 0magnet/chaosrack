@@ -30,6 +30,8 @@
 /docs/img/gif/
 # The models' loops likewise (uitool portraits writes them; make publish-gifs).
 /docs/img/model/*.gif
+# The videos likewise; the scripts that render them stay beside them on main.
+/docs/video/*.mp4
 
 # `make onefile` writes this: the whole app in one HTML file, both runtimes
 # inside it. It was tracked, 12.3 MB, and went 629 commits without being

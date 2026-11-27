@@ -45,6 +45,8 @@ jobs:
           cp _media/docs/img/gif/*.gif docs/img/gif/
           # The models' loops, beside their stills in docs/img/model.
           if ls _media/docs/img/model/*.gif >/dev/null 2>&1; then cp _media/docs/img/model/*.gif docs/img/model/; fi
+          # The videos, beside the scripts that render them.
+          if ls _media/docs/video/*.mp4 >/dev/null 2>&1; then cp _media/docs/video/*.mp4 docs/video/; fi
           rm -rf _media
       - name: add the wasm builds
         # They are not in the repository: the ci workflow publishes them as
